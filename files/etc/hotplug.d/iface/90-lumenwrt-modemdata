@@ -1,0 +1,33 @@
+#!/bin/sh
+# LumenWRT: keep modemdata off QModem's AT port.
+# QModem picks the first AT port that answers (ttyUSB2 or ttyUSB3 on the
+# RG500Q, depending on probe order). Two programs on one AT port garble each
+# other's replies, so when the modem interface comes up, point the modemdata
+# definition "aw1000" at another valid AT port of the same modem.
+
+[ "$ACTION" = ifup ] || exit 0
+[ "$INTERFACE" = wwan ] || exit 0
+uci -q get defmodems.aw1000 >/dev/null || exit 0
+
+# QModem modem-device section whose interface (alias) is "wwan"
+sec=""
+for s in $(uci -q show qmodem | sed -n "s/^qmodem\.\([^.=]*\)=modem-device$/\1/p"); do
+	[ "$(uci -q get "qmodem.$s.alias")" = wwan ] && { sec="$s"; break; }
+done
+[ -n "$sec" ] || exit 0
+
+qm_port="$(uci -q get "qmodem.$sec.at_port")"
+pick=""
+for p in $(uci -q get "qmodem.$sec.valid_at_ports"); do
+	[ "$p" != "$qm_port" ] && { pick="$p"; break; }
+done
+[ -n "$pick" ] || exit 0
+[ "$(uci -q get defmodems.aw1000.comm_port)" = "$pick" ] && exit 0
+
+uci -q batch <<-EOF
+	set defmodems.aw1000.comm_port='$pick'
+	set defmodems.aw1000.comm_serial='$pick'
+	commit defmodems
+EOF
+logger -t lumenwrt "modemdata: using $pick (QModem uses $qm_port)"
+exit 0

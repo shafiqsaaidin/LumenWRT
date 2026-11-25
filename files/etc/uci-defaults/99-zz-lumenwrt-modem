@@ -58,6 +58,25 @@ uci -q batch <<-EOF
 	commit qmodem
 EOF
 
+# ---------------------------------------------------------------- modemdata
+# Define the built-in modem so Modem > Modemdata Status shows it. Reads over a
+# serial AT port; /etc/hotplug.d/iface/90-lumenwrt-modemdata moves it to the
+# AT port QModem isn't using once the modem is up.
+uci -q batch <<-EOF
+	set defmodems.aw1000=defmodems
+	set defmodems.aw1000.modem='Quectel RG500Q-EA'
+	set defmodems.aw1000.user_desc='AW1000 5G'
+	set defmodems.aw1000.modemdata='serial'
+	set defmodems.aw1000.comm_port='/dev/ttyUSB2'
+	set defmodems.aw1000.comm_serial='/dev/ttyUSB2'
+	set defmodems.aw1000.network='wwan'
+	set defmodems.aw1000.forced_plmn='0'
+	set defmodems.aw1000.forced_plmn_serial='0'
+	set defmodems.aw1000.skip_pkgcheck='0'
+	set defmodems.@general[0].main_modem='aw1000'
+	commit defmodems
+EOF
+
 # ---------------------------------------------------------------- LEDs
 # All front-panel LEDs are driven by the QModem status script
 # lumenwrt_aw1000.sh (signal/5G colours, Wi-Fi, SMS, internet, power).

@@ -69,6 +69,7 @@ Downloads and ccache are cached between runs, so rebuilds are much faster than t
 | TTL | on, 64 (NSS ECM stopped while on, see above) |
 | WAN | 5G modem `wwan` (primary, metric 11); Ethernet WAN port `wan` as DHCP client without default route; no `wan6` |
 | LEDs | driven by `lumenwrt_aw1000.sh` (QModem LED service), see below |
+| modemdata | built-in modem pre-defined (Modem → Modemdata Status); reads via the AT port QModem isn't using |
 
 ### Front-panel LEDs
 

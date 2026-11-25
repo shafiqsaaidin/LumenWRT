@@ -45,6 +45,7 @@ This file is public. Credentials and private notes go in `CLAUDE.local.md`
   `etc/uci-defaults/99-lumenwrt` (hostname, TZ, NSS offload off, Aurora, TTL),
   `etc/uci-defaults/99-zz-lumenwrt-modem` (WAN interfaces, QModem slot, LED setup),
   `usr/share/qmodem/led_scripts/lumenwrt_aw1000.sh` (LED controller),
+  `etc/hotplug.d/iface/90-lumenwrt-modemdata` (modemdata AT port),
   `etc/firewall.d/qmodem_ttl` (no-op the ttlfw4 init calls), `etc/banner`
 - `patches/<feed>/*.patch` — local fixes applied with `git apply` to
   `openwrt/feeds/<feed>` after each feeds update (feed reset first). Each patch
@@ -77,6 +78,14 @@ This file is public. Credentials and private notes go in `CLAUDE.local.md`
   `patches/qmodem/0001-*`; upstream fix a06124f9a0. A green build + manifest
   check doesn't catch this: also check web files in the rootfs
   (`www/luci-static/resources/view/<app>/`).
+- modemdata shows nothing until a modem is defined in `/etc/config/defmodems`
+  (section type `defmodems`: modem, modemdata=serial, comm_port/comm_serial,
+  network=wwan, forced_plmn; `general.main_modem`). We define `defmodems.aw1000`
+  in `99-zz`. QModem's AT port isn't stable across boots (first port that
+  answers, readdir order: ttyUSB3 or ttyUSB2), so
+  `files/etc/hotplug.d/iface/90-lumenwrt-modemdata` moves modemdata to the
+  other valid port on `ifup wwan`. ShiranekoWrt's Status-page widget
+  `12_modemdata.js` is not upstream (no source) — not included.
 - uci-defaults order is alphabetical: `99-lumenwrt` runs **before** QModem's
   `99-qmodem-board`, `99-zz-lumenwrt-modem` after it. qmodem-board only fills
   missing options (`uci_set_missing`), so anything QModem-related we set must
