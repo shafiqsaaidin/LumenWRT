@@ -60,7 +60,15 @@ mkdir img && tar -xf *sysupgrade.bin -C img && unsquashfs -q -d img/root img/sys
 ls -l img/root/etc/uci-defaults/99-lumenwrt img/root/etc/board.d/99-lumenwrt
 ls img/root/etc/rc.d | grep -E 'ttl|ecm'      # S95qmodem_ttl, S26qca-nss-ecm
 ls img/root/lib/modules/*/ | grep -E 'tproxy|rmnet|qmi_wwan|ecm|tun.ko'
+# every LuCI menu view must exist (a missing one = 404 "loading class file")
+for v in $(cat img/root/usr/share/luci/menu.d/*.json | sed -n 's/.*"path": *"\([^"]*\)".*/\1/p' | sort -u); do
+  [ -f "img/root/www/luci-static/resources/view/$v.js" ] || echo "MISSING view: $v"
+done
+ls img/root/www | grep -vxE 'luci-static|cgi-bin|index.html' # stray dirs = broken install path
 ```
+
+A view listed in a menu that has no `.js` is fine only if it is a template/alias
+entry; check the menu JSON `action.type` (only `view` needs a file).
 
 Expected outputs: `*-squashfs-sysupgrade.bin` (~23 MB, for devices already on
 OpenWrt), `*-squashfs-factory.ubi`, `*-initramfs-uImage.itb` (recovery via

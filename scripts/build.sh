@@ -43,7 +43,9 @@ prepare() {
 		echo "src-git modemdata_luci ${MODEMDATA_LUCI_REPO}^${MODEMDATA_LUCI_REF}"
 	} > "$WRT/feeds.conf"
 	cat "$WRT/feeds.conf"
-	(cd "$WRT" && ./scripts/feeds update -a && ./scripts/feeds install -a)
+	(cd "$WRT" && ./scripts/feeds update -a)
+	apply_patches
+	(cd "$WRT" && ./scripts/feeds install -a)
 
 	log "Extra packages"
 	mkdir -p "$WRT/package/lumenwrt"
@@ -58,6 +60,25 @@ prepare() {
 	cp "$ROOT/config/lumenwrt.seed" "$WRT/.config"
 	(cd "$WRT" && make defconfig >/dev/null)
 	verify_config
+}
+
+# patches/<feed>/*.patch are applied (git apply, in name order) to
+# openwrt/feeds/<feed> after every feeds update. The feed checkout is reset
+# first, so re-running prepare is idempotent.
+apply_patches() {
+	local dir feed p
+	for dir in "$ROOT"/patches/*/; do
+		[ -d "$dir" ] || continue
+		feed="$(basename "$dir")"
+		[ -d "$WRT/feeds/$feed/.git" ] || die "patches/$feed: no feed '$feed' in openwrt/feeds"
+		git -C "$WRT/feeds/$feed" checkout -q -- .
+		for p in "$dir"*.patch; do
+			[ -e "$p" ] || continue
+			log "Patch $feed: $(basename "$p")"
+			git -C "$WRT/feeds/$feed" apply --whitespace=nowarn "$p" \
+				|| die "patch $(basename "$p") does not apply to feed $feed (upstream changed?)"
+		done
+	done
 }
 
 # Every "=y" line in the seed must survive defconfig (otherwise a package name

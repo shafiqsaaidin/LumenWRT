@@ -46,6 +46,9 @@ This file is public. Credentials and private notes go in `CLAUDE.local.md`
   `etc/uci-defaults/99-zz-lumenwrt-modem` (WAN interfaces, QModem slot, LED setup),
   `usr/share/qmodem/led_scripts/lumenwrt_aw1000.sh` (LED controller),
   `etc/firewall.d/qmodem_ttl` (no-op the ttlfw4 init calls), `etc/banner`
+- `patches/<feed>/*.patch` — local fixes applied with `git apply` to
+  `openwrt/feeds/<feed>` after each feeds update (feed reset first). Each patch
+  header says which upstream commit makes it obsolete.
 - `scripts/build.sh prepare|build|all|menuconfig` — single entry point, used by CI
 - `.github/workflows/build.yml` — manual dispatch or `v*` tag (tag = GitHub Release)
 - `openwrt/`, `out/` — git-ignored build tree and images
@@ -68,6 +71,12 @@ This file is public. Credentials and private notes go in `CLAUDE.local.md`
 - qmodem-voip compiles a helper with host `clang` + `lld` (`-fuse-ld=lld`).
 - `make defconfig` prints "recursive dependency" errors for dnsdist, snort3, etc.
   — upstream feed noise, harmless.
+- QModem `v3.4.0_rc3.1`'s `luci-app-qmodem-next` installed its views to
+  `/www/resources/` (cp into a missing `$(1)/www`), so LuCI 404'd on
+  `view/qmodem/overview.js` in the first flashed image. Fixed by
+  `patches/qmodem/0001-*`; upstream fix a06124f9a0. A green build + manifest
+  check doesn't catch this: also check web files in the rootfs
+  (`www/luci-static/resources/view/<app>/`).
 - uci-defaults order is alphabetical: `99-lumenwrt` runs **before** QModem's
   `99-qmodem-board`, `99-zz-lumenwrt-modem` after it. qmodem-board only fills
   missing options (`uci_set_missing`), so anything QModem-related we set must

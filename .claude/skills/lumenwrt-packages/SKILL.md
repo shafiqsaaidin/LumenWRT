@@ -43,12 +43,21 @@ change is a decision, and README if user-visible.
 - Keep scripts executable (`chmod +x`; git keeps the mode). Check with `sh -n`.
 - Defaults don't apply on sysupgrade with kept settings.
 
+## Patching a feed package
+
+Prefer a small patch over bumping a pinned source to a much newer commit:
+fix the file in `openwrt/feeds/<feed>`, save `git -C openwrt/feeds/<feed> diff`
+to `patches/<feed>/NNNN-<pkg>-<what>.patch` with a header (what, why, upstream
+commit that obsoletes it), `git checkout -- .` the feed, then `prepare` (it
+re-applies and fails loudly if a patch no longer applies).
+
 ## Bumping pinned sources
 
 1. Look at upstream first (GitHub API): new commits/tags, what changed, open
    issues. qosmio branches: `24.10-nss`, `25.12-nss`, `main-nss`. QModem: `main`
    (rc tags `vX.Y.Z_rcN`) and `stable` (`vX.Y.Z`); VoIP/SIP needs ≥ 3.4.
 2. Edit the SHA in `config/sources.env`, `prepare`, fix any dropped symbols.
+   Delete patches in `patches/` whose header says the new ref includes the fix.
 3. Re-check things this project depends on: AW1000 device profile in
    `target/linux/qualcommax/image/ipq807x.mk`, NSS FW default (11.4 needed for
    rmnet), QModem `driver/nss/*` still present, ttlfw4 init behaviour.
