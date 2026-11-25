@@ -21,12 +21,23 @@ EOF
 
 # Wi-Fi SSIDs/password/country come from /etc/board.d/99-lumenwrt.
 
-# LuCI theme
-if [ -d /www/luci-static/aurora ]; then
-	uci -q batch <<-EOF
-		set luci.main.mediaurlbase='/luci-static/aurora'
-		commit luci
-	EOF
-fi
+# LuCI theme: Aurora by default (Bootstrap stays installed as a fallback)
+uci -q batch <<-EOF
+	set luci.themes.Aurora='/luci-static/aurora'
+	set luci.main.mediaurlbase='/luci-static/aurora'
+	commit luci
+EOF
+
+# TTL: rewrite TTL/hop limit of LAN traffic to 64 so tethering detection sees
+# phone-like packets. NOTE: while enabled, luci-app-qmodem-ttlfw4 stops NSS ECM
+# (routing falls back to the CPU) so every packet passes the nftables rule.
+# Turn off under Modem > TTL to get NSS acceleration back.
+uci -q batch <<-EOF
+	set qmodem_ttl.main=main
+	set qmodem_ttl.main.enable='1'
+	set qmodem_ttl.main.ttl='64'
+	commit qmodem_ttl
+EOF
+[ -x /etc/init.d/qmodem_ttl ] && /etc/init.d/qmodem_ttl enable
 
 exit 0

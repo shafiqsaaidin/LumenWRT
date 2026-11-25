@@ -38,10 +38,15 @@ jobs:
             libelf-dev zstd
 
       - name: Prepare tree (sources, feeds, config)
-        run: scripts/build.sh prepare
+        id: prepare
+        run: |
+          scripts/build.sh prepare
+          mkdir -p openwrt/dl openwrt/.ccache
 
-      - name: Cache downloads
-        uses: actions/cache@v4
+      # Restore and save are separate steps so the caches are saved even when
+      # the build fails (actions/cache only saves on a fully successful job).
+      - name: Restore download cache
+        uses: actions/cache/restore@v4
         with:
           path: openwrt/dl
           key: dl-${{ hashFiles('config/sources.env') }}-${{ github.run_id }}
@@ -49,8 +54,8 @@ jobs:
             dl-${{ hashFiles('config/sources.env') }}-
             dl-
 
-      - name: Cache ccache
-        uses: actions/cache@v4
+      - name: Restore ccache
+        uses: actions/cache/restore@v4
         with:
           path: openwrt/.ccache
           key: ccache-${{ hashFiles('config/sources.env', 'config/lumenwrt.seed') }}-${{ github.run_id }}
@@ -60,6 +65,20 @@ jobs:
 
       - name: Build
         run: scripts/build.sh build
+
+      - name: Save download cache
+        if: always() && steps.prepare.outcome == 'success'
+        uses: actions/cache/save@v4
+        with:
+          path: openwrt/dl
+          key: dl-${{ hashFiles('config/sources.env') }}-${{ github.run_id }}
+
+      - name: Save ccache
+        if: always() && steps.prepare.outcome == 'success'
+        uses: actions/cache/save@v4
+        with:
+          path: openwrt/.ccache
+          key: ccache-${{ hashFiles('config/sources.env', 'config/lumenwrt.seed') }}-${{ github.run_id }}
 
       - name: Collect build info
         if: always()

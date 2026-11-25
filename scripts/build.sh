@@ -60,15 +60,21 @@ prepare() {
 	verify_config
 }
 
-# Every "=y" line in the seed must survive defconfig; otherwise a package name
-# is wrong or a dependency is unmet and Kconfig silently dropped it.
+# Every "=y" line in the seed must survive defconfig (otherwise a package name
+# is wrong or a dependency is unmet and Kconfig silently dropped it), and every
+# "# CONFIG_X is not set" line must not come back as =y/=m through a dependency.
 verify_config() {
-	local missing=0 line
+	local bad=0 line sym
 	while IFS= read -r line; do
-		grep -qxF "$line" "$WRT/.config" || { echo "  dropped: $line"; missing=1; }
+		grep -qxF "$line" "$WRT/.config" || { echo "  dropped: $line"; bad=1; }
 	done < <(grep -E '^CONFIG_[A-Za-z0-9_.+-]+=y$' "$ROOT/config/lumenwrt.seed")
-	[ "$missing" = 0 ] || die "seed options were dropped by defconfig (see above)"
-	log "Config OK: all seed options present"
+	while IFS= read -r sym; do
+		if grep -qE "^${sym}=[ym]$" "$WRT/.config"; then
+			echo "  re-enabled: $(grep -E "^${sym}=" "$WRT/.config")"; bad=1
+		fi
+	done < <(sed -n 's/^# \(CONFIG_[A-Za-z0-9_.+-]*\) is not set$/\1/p' "$ROOT/config/lumenwrt.seed")
+	[ "$bad" = 0 ] || die "config does not match the seed (see above)"
+	log "Config OK: seed options present, disabled options stay disabled"
 }
 
 build() {

@@ -71,6 +71,9 @@ CONFIG_PACKAGE_luci-mod-netstat=y
 # Modem: Quectel RG500Q-EA over USB, QMI with NSS rmnet offload
 #####################################################################
 CONFIG_PACKAGE_qmodem=y
+# No encrypted feedback upload helper
+# CONFIG_PACKAGE_qmodem_INCLUDE_SEAL is not set
+# CONFIG_PACKAGE_qmodem-seal is not set
 CONFIG_PACKAGE_luci-app-qmodem-next=y
 CONFIG_PACKAGE_luci-app-qmodem-ttlfw4=y
 CONFIG_PACKAGE_qmodem-voip=y
@@ -90,6 +93,9 @@ CONFIG_PACKAGE_luci-app-modemdata=y
 CONFIG_PACKAGE_luci-proto-wireguard=y
 CONFIG_PACKAGE_kmod-tun=y
 CONFIG_PACKAGE_kmod-tcp-bbr=y
+# xlite tproxy mode (nft "tproxy to"); pulls kmod-nf-tproxy. Kernel modules
+# must be built in-tree: upstream kmods don't match the NSS-patched kernel.
+CONFIG_PACKAGE_kmod-nft-tproxy=y
 
 #####################################################################
 # Tools

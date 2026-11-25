@@ -9,13 +9,20 @@ with Qualcomm NSS hardware offload and [QModem](https://github.com/FUjr/QModem).
 - NSS offload (FW 11.4, ECM, bridge/VLAN managers), NSS-aware modem path
   (`kmod-qmi_wwan_q_nss` + `kmod-rmnet-nss`)
 - QModem 3.4.0_rc3.1: `luci-app-qmodem-next` (status, SMS, band lock), VoIP/SIP
-  (`qmodem-voip`, `qmodem-sipd`), TTL (`luci-app-qmodem-ttlfw4`, off by default)
-- modemdata, WireGuard, kmod-tun, TCP BBR, adb, btop, tmux, iperf3
+  (`qmodem-voip`, `qmodem-sipd`), TTL (`luci-app-qmodem-ttlfw4`, **on by default, TTL 64**)
+- modemdata, WireGuard, kmod-tun, kmod-nft-tproxy (for xlite), TCP BBR, adb, btop, tmux, iperf3
 - Aurora theme, LuCI Dashboard (`luci-mod-dashboard`), "At a Glance" status widget
   (`luci-mod-netstat`; fetches your public IP from api.ipify.org every 5 min while open)
 
-> Enabling QModem TTL stops NSS ECM (routing falls back to the CPU) so the TTL
-> rewrite applies to every packet. Leave it off unless your carrier needs it.
+> **TTL vs NSS:** TTL rewriting is on by default, and while it is on QModem stops
+> NSS ECM so the nftables rule sees every packet. Routing then runs on the CPU
+> (Wi-Fi/Ethernet drivers still use NSS). If your SIM doesn't need it, turn it off
+> under **Modem → TTL** to get full NSS routing acceleration back.
+
+> **Installing packages later:** the image's apk feeds point at upstream OpenWrt
+> 25.12. Regular packages install fine, but **kernel modules (`kmod-*`) won't**:
+> this kernel carries NSS patches, so upstream kmods don't match it. Add any
+> kernel module you need to `config/lumenwrt.seed` and rebuild.
 
 ## Layout
 
@@ -58,6 +65,8 @@ Downloads and ccache are cached between runs, so rebuilds are much faster than t
 | Timezone | Asia/Kuala_Lumpur |
 | Wi-Fi | **on**, country MY, SSIDs `LumenWRT` (2.4 GHz) and `LumenWRT_5G`, WPA2, password **`lumenwrt`** |
 | Root password | none; LuCI asks you to set one |
+| LuCI theme | Aurora (Bootstrap kept as a fallback under System → System → Language and Style) |
+| TTL | on, 64 (NSS ECM stopped while on, see above) |
 | Offloading | flow offloading and packet steering forced off (NSS handles it) |
 
 Change the Wi-Fi password after first login. These defaults only apply on a fresh
