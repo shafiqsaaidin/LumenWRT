@@ -65,7 +65,7 @@ jobs:
         if: always()
         run: |
           mkdir -p out
-          cp openwrt/.config out/config.buildinfo 2>/dev/null || true
+          cp openwrt/.config out/full.config 2>/dev/null || true
           cp config/sources.env out/ || true
           ls -lh out
           df -h /

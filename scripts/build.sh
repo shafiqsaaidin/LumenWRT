@@ -83,7 +83,8 @@ build() {
 	}
 	mkdir -p "$OUT"
 	cp -v bin/targets/qualcommax/ipq807x/*arcadyan_aw1000* "$OUT/"
-	cp -v bin/targets/qualcommax/ipq807x/sha256sums "$OUT/" 2>/dev/null || true
+	# Build metadata listed in sha256sums (seed diff, feed revisions, version, profiles)
+	cp -v bin/targets/qualcommax/ipq807x/{sha256sums,*.buildinfo,profiles.json} "$OUT/" 2>/dev/null || true
 	log "Images in $OUT"
 }
 
