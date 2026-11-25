@@ -1,0 +1,102 @@
+# LumenWRT seed config for Arcadyan AW1000 (qosmio openwrt-ipq 25.12-nss)
+# Expanded with `make defconfig` by scripts/build.sh. Every "=y" line here is
+# verified to survive defconfig, so a typo or unmet dependency fails the build.
+
+#####################################################################
+# Target
+#####################################################################
+CONFIG_TARGET_qualcommax=y
+CONFIG_TARGET_qualcommax_ipq807x=y
+CONFIG_TARGET_qualcommax_ipq807x_DEVICE_arcadyan_aw1000=y
+
+#####################################################################
+# Branding
+#####################################################################
+CONFIG_IMAGEOPT=y
+CONFIG_VERSIONOPT=y
+CONFIG_VERSION_DIST="LumenWRT"
+# Keep custom feeds out of the image's apk repository list (they do not
+# exist on downloads.openwrt.org).
+# CONFIG_FEED_nss_packages is not set
+# CONFIG_FEED_sqm_scripts_nss is not set
+# CONFIG_FEED_qmodem is not set
+# CONFIG_FEED_modemdata is not set
+# CONFIG_FEED_modemdata_luci is not set
+
+#####################################################################
+# NSS offloading (qca-nss-drv/ecm/bridge-mgr/vlan-mgr come with the target)
+#####################################################################
+CONFIG_ATH11K_NSS_MESH_SUPPORT=y
+CONFIG_PACKAGE_kmod-qca-mcs=y
+
+#####################################################################
+# Toolchain / kernel (from qosmio nss-setup/config-nss.seed)
+#####################################################################
+CONFIG_CCACHE=y
+CONFIG_DEVEL=y
+CONFIG_TOOLCHAINOPTS=y
+CONFIG_TARGET_OPTIONS=y
+CONFIG_TARGET_OPTIMIZATION="-O2 -pipe -mcpu=cortex-a53+crc+crypto"
+CONFIG_USE_GC_SECTIONS=y
+# Per-package logs in openwrt/logs/ (uploaded by CI on failure)
+CONFIG_BUILD_LOG=y
+CONFIG_KERNEL_PREEMPT_NONE=y
+# CONFIG_ATH11K_DEBUGFS_HTT_STATS is not set
+# CONFIG_ATH11K_DEBUGFS_STA is not set
+# CONFIG_ATH11K_THERMAL is not set
+
+#####################################################################
+# SSL / Wi-Fi: OpenSSL everywhere, no mixed TLS libraries
+#####################################################################
+CONFIG_PACKAGE_libustream-openssl=y
+# CONFIG_PACKAGE_libustream-mbedtls is not set
+CONFIG_PACKAGE_libopenssl=y
+CONFIG_OPENSSL_OPTIMIZE_SPEED=y
+CONFIG_PACKAGE_wpad-openssl=y
+# CONFIG_PACKAGE_wpad-basic-mbedtls is not set
+
+#####################################################################
+# LuCI
+#####################################################################
+CONFIG_PACKAGE_luci=y
+CONFIG_PACKAGE_luci-ssl-openssl=y
+CONFIG_PACKAGE_luci-app-firewall=y
+CONFIG_PACKAGE_luci-app-package-manager=y
+CONFIG_PACKAGE_luci-theme-aurora=y
+CONFIG_PACKAGE_luci-app-aurora-config=y
+CONFIG_PACKAGE_luci-mod-dashboard=y
+CONFIG_PACKAGE_luci-mod-netstat=y
+
+#####################################################################
+# Modem: Quectel RG500Q-EA over USB, QMI with NSS rmnet offload
+#####################################################################
+CONFIG_PACKAGE_qmodem=y
+CONFIG_PACKAGE_luci-app-qmodem-next=y
+CONFIG_PACKAGE_luci-app-qmodem-ttlfw4=y
+CONFIG_PACKAGE_qmodem-voip=y
+CONFIG_PACKAGE_qmodem-sipd=y
+# QModem's driver choice: NSS variant only (the default "vendor" choice would
+# also pull kmod-qmi_wwan_q, which builds the same qmi_wwan_q.ko)
+CONFIG_PACKAGE_luci-app-qmodem_INCLUDE_nss-qmi-wwan=y
+CONFIG_PACKAGE_kmod-qmi_wwan_q_nss=y
+CONFIG_PACKAGE_kmod-rmnet-nss=y
+CONFIG_PACKAGE_quectel-CM-5G-M=y
+CONFIG_PACKAGE_ndisc6=y
+CONFIG_PACKAGE_luci-app-modemdata=y
+
+#####################################################################
+# Networking extras
+#####################################################################
+CONFIG_PACKAGE_luci-proto-wireguard=y
+CONFIG_PACKAGE_kmod-tun=y
+CONFIG_PACKAGE_kmod-tcp-bbr=y
+
+#####################################################################
+# Tools
+#####################################################################
+CONFIG_PACKAGE_adb=y
+CONFIG_PACKAGE_btop=y
+CONFIG_PACKAGE_tmux=y
+CONFIG_PACKAGE_iperf3=y
+CONFIG_PACKAGE_curl=y
+CONFIG_PACKAGE_jq=y

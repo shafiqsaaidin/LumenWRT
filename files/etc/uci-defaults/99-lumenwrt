@@ -1,0 +1,32 @@
+#!/bin/sh
+# LumenWRT first-boot defaults. Runs once; removed after a successful run.
+
+# System
+uci -q batch <<-EOF
+	set system.@system[0].hostname='LumenWRT'
+	set system.@system[0].zonename='Asia/Kuala_Lumpur'
+	set system.@system[0].timezone='<+08>-8'
+	commit system
+EOF
+
+# NSS: software/hardware flow offloading and packet steering conflict with
+# NSS ECM, so force them off (qosmio/openwrt-ipq README).
+uci -q batch <<-EOF
+	set firewall.@defaults[0].flow_offloading='0'
+	set firewall.@defaults[0].flow_offloading_hw='0'
+	commit firewall
+	set network.globals.packet_steering='0'
+	commit network
+EOF
+
+# Wi-Fi SSIDs/password/country come from /etc/board.d/99-lumenwrt.
+
+# LuCI theme
+if [ -d /www/luci-static/aurora ]; then
+	uci -q batch <<-EOF
+		set luci.main.mediaurlbase='/luci-static/aurora'
+		commit luci
+	EOF
+fi
+
+exit 0

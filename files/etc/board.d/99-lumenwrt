@@ -1,0 +1,16 @@
+#!/bin/sh
+# LumenWRT board defaults, merged into /etc/board.json on first boot and used
+# by wifi-scripts when /etc/config/wireless is generated. Giving each band an
+# SSID makes the radios come up enabled.
+#
+# Default Wi-Fi password: lumenwrt  (change it after first login)
+
+. /lib/functions/uci-defaults.sh
+
+board_config_update
+ucidef_set_country 'MY'
+ucidef_set_wireless '2g' 'LumenWRT'    'psk2' 'lumenwrt'
+ucidef_set_wireless '5g' 'LumenWRT_5G' 'psk2' 'lumenwrt'
+board_config_flush
+
+exit 0
