@@ -37,11 +37,16 @@ cat /sys/kernel/debug/ecm/ecm_db/connection_count_simple 2>/dev/null       # abs
 uci show qmodem_ttl; ls /etc/nftables.d/; nft list ruleset | grep -E 'ttl|hoplimit'
 uci show wireless | grep -E '\.(country|ssid|disabled|encryption)='
 uci get luci.main.mediaurlbase
+uci show network | grep -E '^network\.(wan|wwan)\.'; uci show qmodem_led
+ps w | grep led_scripts | grep -v grep
+for l in /sys/class/leds/*; do echo "$(basename $l): $(cat $l/brightness) [$(sed -n 's/.*\[\(.*\)\].*/\1/p' $l/trigger)]"; done
 ```
 
 Expected on LumenWRT defaults: TTL enabled → `99-reset-ttl-from-br-lan.nft`
 present, `ecm` module NOT loaded (that's by design while TTL is on); radios up
-with country MY; theme `/luci-static/aurora`.
+with country MY; theme `/luci-static/aurora`; `wwan` (metric 11) + `wan`
+(defaultroute 0); `lumenwrt_aw1000.sh 4_1` running; LED colours per README
+(e.g. LTE + medium signal = blue 5G + blue signal).
 
 ## Flashing (only with explicit OK)
 

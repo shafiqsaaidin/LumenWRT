@@ -1,5 +1,8 @@
 #!/bin/sh
 # LumenWRT first-boot defaults. Runs once; removed after a successful run.
+# A sysupgrade that keeps settings re-runs uci-defaults, so a marker in
+# /etc/config/system (which is kept) stops us overwriting the user's changes.
+[ "$(uci -q get system.@system[0].lumenwrt_defaults)" = 1 ] && exit 0
 
 # System
 uci -q batch <<-EOF
@@ -39,5 +42,10 @@ uci -q batch <<-EOF
 	commit qmodem_ttl
 EOF
 [ -x /etc/init.d/qmodem_ttl ] && /etc/init.d/qmodem_ttl enable
+
+uci -q batch <<-EOF
+	set system.@system[0].lumenwrt_defaults='1'
+	commit system
+EOF
 
 exit 0

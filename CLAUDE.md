@@ -32,6 +32,8 @@ This file is public. Credentials and private notes go in `CLAUDE.local.md`
 | Theme | Aurora default, Bootstrap kept as fallback | user choice |
 | Extras | modemdata (obsy + 4IceG feeds), luci-mod-dashboard, luci-mod-netstat (cjayacopra), WireGuard, kmod-tun, kmod-tcp-bbr, kmod-nft-tproxy, adb, btop, tmux | user list; nft-tproxy is for xlite |
 | Wi-Fi | on by default, `LumenWRT`/`LumenWRT_5G`, WPA2, key `lumenwrt`, country MY | user wants Wi-Fi on; set via board.d so it applies at wireless generation |
+| WAN | `wwan` (5G, QMAP `wwan0_1`, metric 11, default route) + `wan` (Ethernet port, DHCP, `defaultroute 0`), no `wan6`; both in fw zone `wan` | matches the pre-LumenWRT router |
+| LEDs | own script `files/usr/share/qmodem/led_scripts/lumenwrt_aw1000.sh`, run by QModem's `qmodem_led` (`modem_status` section `cellular`, bind any) | reproduces the old router's behaviour; the ShiranekoWrt `aw1000.sh` it replaces has no licence and isn't upstream, so it was not copied |
 | Builds | GitHub Actions (public repo, 4-core runners), ~65 min | user choice; local build also works |
 
 ## Layout
@@ -41,6 +43,8 @@ This file is public. Credentials and private notes go in `CLAUDE.local.md`
   `# ... is not set` lines must stay off; `scripts/build.sh` enforces both
 - `files/` — rootfs overlay: `etc/board.d/99-lumenwrt` (Wi-Fi defaults),
   `etc/uci-defaults/99-lumenwrt` (hostname, TZ, NSS offload off, Aurora, TTL),
+  `etc/uci-defaults/99-zz-lumenwrt-modem` (WAN interfaces, QModem slot, LED setup),
+  `usr/share/qmodem/led_scripts/lumenwrt_aw1000.sh` (LED controller),
   `etc/firewall.d/qmodem_ttl` (no-op the ttlfw4 init calls), `etc/banner`
 - `scripts/build.sh prepare|build|all|menuconfig` — single entry point, used by CI
 - `.github/workflows/build.yml` — manual dispatch or `v*` tag (tag = GitHub Release)
@@ -64,6 +68,30 @@ This file is public. Credentials and private notes go in `CLAUDE.local.md`
 - qmodem-voip compiles a helper with host `clang` + `lld` (`-fuse-ld=lld`).
 - `make defconfig` prints "recursive dependency" errors for dnsdist, snort3, etc.
   — upstream feed noise, harmless.
+- uci-defaults order is alphabetical: `99-lumenwrt` runs **before** QModem's
+  `99-qmodem-board`, `99-zz-lumenwrt-modem` after it. qmodem-board only fills
+  missing options (`uci_set_missing`), so anything QModem-related we set must
+  be in the `99-zz` file. Both LumenWRT scripts exit early on a marker in
+  `system.@system[0]` (`lumenwrt_defaults`, `lumenwrt_modem_defaults`) because
+  keep-settings sysupgrades re-run uci-defaults.
+- QModem's modem interface name = modem-device `alias`, which `modem_scand`
+  copies from the matching slot (`qmodem.usb0.alias`) only when it first creates
+  the modem section (`4_1` for USB 4-1). Don't pre-create the modem-device
+  section: scand then skips setting path/enable_dial/metric. Metric comes from
+  slot `default_metric`, else modem_count+10.
+- Upstream QModem AW1000 board defaults set `net_led 'ipq::led9'`/`sim_led
+  'ipq::led2'` (QSDK names, don't exist on 25.12); the dialer would write junk
+  `system.n*` LED sections, so we delete them.
+- Board LED rules from `01_leds` (green:5g, green:internet, WAN-port link) are
+  removed in `99-zz`; `/etc/init.d/led` (S96) would otherwise override the LED
+  script (qmodem_led S79).
+- AW1000 LEDs hang off a 74HC164 shift register: each write glitches all
+  outputs; re-assert `green:power` after writes. RGB groups: `{red,green,blue}:signal`,
+  `{red,green,blue}:5g`.
+- To test router-side scripts without changing the device: copy them to
+  `/tmp`, stub LED writes, and run uci-defaults against `cp -a /etc/config`
+  with `uci() { command uci -c /tmp/x "$@"; }`. Use `-X` when deleting
+  anonymous sections in a loop.
 - The ttlfw4 init writes `/etc/nftables.d/99-reset-ttl-from-br-lan.nft`, stops
   `qca-nss-ecm` (front ends stop, defunct_all, conntrack flush, rmmod) and
   restarts fw4. It needs `qmodem_ttl.main.ttl` set or the nft rule is invalid.

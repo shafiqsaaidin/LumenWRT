@@ -67,6 +67,21 @@ Downloads and ccache are cached between runs, so rebuilds are much faster than t
 | Root password | none; LuCI asks you to set one |
 | LuCI theme | Aurora (Bootstrap kept as a fallback under System → System → Language and Style) |
 | TTL | on, 64 (NSS ECM stopped while on, see above) |
+| WAN | 5G modem `wwan` (primary, metric 11); Ethernet WAN port `wan` as DHCP client without default route; no `wan6` |
+| LEDs | driven by `lumenwrt_aw1000.sh` (QModem LED service), see below |
+
+### Front-panel LEDs
+
+| LED | Meaning |
+|---|---|
+| Power | always on |
+| Signal | white = booting/SIM starting, yellow blink = registering; then green (good, ≥ −95 dBm), blue (medium), red (poor or no SIM) |
+| 5G | white = 5G SA, green = 5G NSA, blue = LTE, red = 3G or no SIM, yellow blink = registering |
+| Internet | on and blinking with traffic when the 5G link reaches the internet |
+| Wi-Fi | solid = both bands, fast blink = 5 GHz only, slow blink = 2.4 GHz only, off = none |
+| Phone | on; blinks ~30 s on a new SMS |
+
+First-boot defaults run once. A sysupgrade that keeps settings does not re-apply them.
 | Offloading | flow offloading and packet steering forced off (NSS handles it) |
 
 Change the Wi-Fi password after first login. These defaults only apply on a fresh
