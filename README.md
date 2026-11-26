@@ -11,7 +11,8 @@ with Qualcomm NSS hardware offload and [QModem](https://github.com/FUjr/QModem).
 - QModem 3.4.0_rc3.1: `luci-app-qmodem-next` (status, SMS, band lock), VoIP/SIP
   (`qmodem-voip`, `qmodem-sipd`), TTL (`luci-app-qmodem-ttlfw4`, **on by default, TTL 64**)
 - modemdata, WireGuard, kmod-tun, kmod-nft-tproxy (for xlite), TCP BBR, adb, btop, tmux, iperf3
-- Aurora theme, LuCI Dashboard (`luci-mod-dashboard`), "At a Glance" status widget
+- Aurora theme, LuCI Dashboard (`luci-mod-dashboard`, the modernized rewrite taken
+  from LuCI master: live charts, temperature monitoring, WAN traffic fix), "At a Glance" status widget
   (`luci-mod-netstat`; fetches your public IP from api.ipify.org every 5 min while open)
 
 > **TTL vs NSS:** TTL rewriting is on by default, and while it is on QModem stops

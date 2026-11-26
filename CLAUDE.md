@@ -34,6 +34,7 @@ This file is public. Credentials and private notes go in `CLAUDE.local.md`
 | Wi-Fi | on by default, `LumenWRT`/`LumenWRT_5G`, WPA2, key `lumenwrt`, country MY | user wants Wi-Fi on; set via board.d so it applies at wireless generation |
 | WAN | `wwan` (5G, QMAP `wwan0_1`, metric 11, default route) + `wan` (Ethernet port, DHCP, `defaultroute 0`), no `wan6`; both in fw zone `wan` | matches the pre-LumenWRT router |
 | LEDs | own script `files/usr/share/qmodem/led_scripts/lumenwrt_aw1000.sh`, run by QModem's `qmodem_led` (`modem_status` section `cellular`, bind any) | reproduces the old router's behaviour; the ShiranekoWrt `aw1000.sh` it replaces has no licence and isn't upstream, so it was not copied |
+| Dashboard | `luci-mod-dashboard` from LuCI master (pinned) over the 25.12 feed copy | user wants eamonxg's rewrite (luci#9022); 25.12 has it via backport, master adds temperature + WAN fix for wwan/@wwan; JS + rpcd ucode only, same deps |
 | Builds | GitHub Actions (public repo, 4-core runners), ~65 min | user choice; local build also works |
 
 ## Layout
@@ -50,6 +51,11 @@ This file is public. Credentials and private notes go in `CLAUDE.local.md`
 - `patches/<feed>/*.patch` — local fixes applied with `git apply` to
   `openwrt/feeds/<feed>` after each feeds update (feed reset first). Each patch
   header says which upstream commit makes it obsolete.
+- Feed overrides (`apply_overrides` in build.sh, refs in sources.env): a package
+  dir in a feed checkout is replaced by the same path from another repo/commit.
+  Currently `luci/modules/luci-mod-dashboard` from LuCI master (`DASHBOARD_REF`).
+  Runs after patches; don't patch an overridden dir. Sparse clones live in
+  `openwrt/.lumenwrt-src/`.
 - `scripts/build.sh prepare|build|all|menuconfig` — single entry point, used by CI
 - `.github/workflows/build.yml` — manual dispatch or `v*` tag (tag = GitHub Release)
 - `openwrt/`, `out/` — git-ignored build tree and images

@@ -51,6 +51,14 @@ to `patches/<feed>/NNNN-<pkg>-<what>.patch` with a header (what, why, upstream
 commit that obsoletes it), `git checkout -- .` the feed, then `prepare` (it
 re-applies and fails loudly if a patch no longer applies).
 
+## Taking a newer version of one feed package
+
+To ship e.g. a LuCI master package on 25.12 (only if it's JS/ucode or its deps
+exist in 25.12 — check `LUCI_DEPENDS` and `require`/`import` lines), add a
+`*_REF` to sources.env and an `override_dir <feed> <path> <repo> <ref>` line in
+`apply_overrides` (build.sh). Don't add a second copy under `package/`: feeds
+are installed first, so you'd get a duplicate package name.
+
 ## Bumping pinned sources
 
 1. Look at upstream first (GitHub API): new commits/tags, what changed, open

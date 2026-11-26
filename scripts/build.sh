@@ -44,7 +44,8 @@ prepare() {
 	} > "$WRT/feeds.conf"
 	cat "$WRT/feeds.conf"
 	(cd "$WRT" && ./scripts/feeds update -a)
-	apply_patches
+	apply_patches     # resets each patched feed checkout first...
+	apply_overrides   # ...so overrides go last (don't patch an overridden dir)
 	(cd "$WRT" && ./scripts/feeds install -a)
 
 	log "Extra packages"
@@ -60,6 +61,32 @@ prepare() {
 	cp "$ROOT/config/lumenwrt.seed" "$WRT/.config"
 	(cd "$WRT" && make defconfig >/dev/null)
 	verify_config
+}
+
+# Replace one package directory inside a feed checkout with the same path
+# from another repo at a pinned commit (sparse, blob-filtered clone).
+#   override_dir <feed> <path-in-feed> <repo-url> <commit>
+override_dir() {
+	local feed="$1" path="$2" url="$3" ref="$4"
+	local src="$WRT/.lumenwrt-src/$feed-$(echo "$path" | tr / _)"
+	local dst="$WRT/feeds/$feed/$path"
+	[ -d "$WRT/feeds/$feed/.git" ] || die "override: no feed '$feed'"
+	if [ ! -d "$src/.git" ]; then
+		git clone -q --filter=blob:none --no-checkout "$url" "$src"
+		git -C "$src" sparse-checkout set --no-cone "/$path/"
+	fi
+	git -C "$src" cat-file -e "$ref^{commit}" 2>/dev/null || git -C "$src" fetch -q origin
+	git -C "$src" -c advice.detachedHead=false checkout -q --force "$ref"
+	[ -d "$src/$path" ] || die "override: $path not found in $url@$ref"
+	# reset the feed's copy first so re-running prepare is idempotent
+	git -C "$WRT/feeds/$feed" checkout -q -- "$path" 2>/dev/null || true
+	git -C "$WRT/feeds/$feed" clean -fdq -- "$path"
+	rsync -a --delete "$src/$path/" "$dst/"
+	log "Override $feed/$path <- ${url##*/}@${ref:0:10}"
+}
+
+apply_overrides() {
+	override_dir luci modules/luci-mod-dashboard "$LUCI_MASTER_REPO" "$DASHBOARD_REF"
 }
 
 # patches/<feed>/*.patch are applied (git apply, in name order) to
