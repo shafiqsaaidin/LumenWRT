@@ -87,6 +87,7 @@ plus paid support. Consequences for engineering:
   Licence audit of the resolved config: nothing non-commercial; only firmware
   blobs (nss-firmware, ath11k, ipq-wifi BDF) and adb lack PKG_LICENSE.
   First flash must be clean (`sysupgrade -n`), wired access ready (homelab).
+  Day-to-day work on this line: skill `lumenwrt-ppe-nss`.
 
 ## Decisions (and why)
 
@@ -101,6 +102,7 @@ plus paid support. Consequences for engineering:
 | Theme | Aurora default, Bootstrap kept as fallback | user choice |
 | Extras | modemdata (obsy + 4IceG feeds), luci-mod-dashboard, luci-mod-netstat (cjayacopra), WireGuard, kmod-tun, kmod-tcp-bbr, kmod-nft-tproxy, adb, btop, tmux | user list; nft-tproxy is for xlite |
 | Wi-Fi | on by default, `LumenWRT`/`LumenWRT_5G`, WPA2, key `lumenwrt`, country MY | user wants Wi-Fi on; set via board.d so it applies at wireless generation |
+| 5 GHz width (ppe-nss) | channel 36, HE160 (set in `99-lumenwrt`) | user wants 160 MHz like ShiranekoWrt; MY forbids 160 MHz on 149-165, so 36-64 (60 s DFS check at start) |
 | WAN | `wwan` (5G, QMAP `wwan0_1`, metric 11, default route) + `wan` (Ethernet port, DHCP, `defaultroute 0`), no `wan6`; both in fw zone `wan` | matches the pre-LumenWRT router |
 | LEDs | own script `files/usr/share/qmodem/led_scripts/lumenwrt_aw1000.sh`, run by QModem's `qmodem_led` (`modem_status` section `cellular`, bind any) | reproduces the old router's behaviour; the ShiranekoWrt `aw1000.sh` it replaces has no licence and isn't upstream, so it was not copied |
 | Dashboard | `luci-mod-dashboard` from LuCI master (pinned) over the 25.12 feed copy | user wants eamonxg's rewrite (luci#9022); 25.12 has it via backport, master adds temperature + WAN fix for wwan/@wwan; JS + rpcd ucode only, same deps |

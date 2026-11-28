@@ -14,6 +14,16 @@ uci -q batch <<-EOF
 EOF
 
 # Wi-Fi SSIDs/password/country come from /etc/board.d/99-lumenwrt.
+# 5 GHz at 160 MHz on channel 36 (36-64; 52-64 are DFS, ~60 s radar check at
+# start-up). In Malaysia (country MY) 149-165 are NO_160MHZ, 100-128 is the
+# other (all-DFS) 160 MHz block. /etc/config/wireless exists by now: boot runs
+# 'wifi config' before the uci-defaults.
+for radio in $(uci -q -X show wireless | sed -n "s/^wireless\.\([^.=]*\)=wifi-device$/\1/p"); do
+	[ "$(uci -q get "wireless.$radio.band")" = 5g ] || continue
+	uci -q set "wireless.$radio.channel=36"
+	uci -q set "wireless.$radio.htmode=HE160"
+done
+uci -q commit wireless
 
 # LuCI theme: Aurora by default (Bootstrap stays installed as a fallback)
 uci -q batch <<-EOF

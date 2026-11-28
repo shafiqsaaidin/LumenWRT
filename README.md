@@ -66,7 +66,7 @@ Sources and feeds are pinned in `config/sources.env`; images land in `out/`.
 |---|---|
 | Hostname / LAN | `LumenWRT` / `192.168.1.1` |
 | Timezone | Asia/Kuala_Lumpur |
-| Wi-Fi | **on**, country MY, SSIDs `LumenWRT` (2.4 GHz) and `LumenWRT_5G`, WPA2, password **`lumenwrt`** |
+| Wi-Fi | **on**, country MY, SSIDs `LumenWRT` (2.4 GHz, HE20) and `LumenWRT_5G` (ch 36, **160 MHz**), WPA2, password **`lumenwrt`** |
 | Root password | none; LuCI asks you to set one |
 | LuCI theme | Aurora (Bootstrap kept as a fallback) |
 | 5G | wwand autosetup: interface `wwan0` (device `wwand0`) in the wan zone, APN from the SIM's ICCID/IMSI table |
