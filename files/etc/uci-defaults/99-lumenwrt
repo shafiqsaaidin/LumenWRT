@@ -1,7 +1,8 @@
 #!/bin/sh
-# LumenWRT first-boot defaults. Runs once; removed after a successful run.
-# A sysupgrade that keeps settings re-runs uci-defaults, so a marker in
+# LumenWRT first-boot defaults (ppe-nss). Runs once per fresh config: a
+# keep-settings sysupgrade re-runs uci-defaults, and the marker in
 # /etc/config/system (which is kept) stops us overwriting the user's changes.
+# Sorts after the target's 99-flow-offload, which enables PPE/NSS offload.
 [ "$(uci -q get system.@system[0].lumenwrt_defaults)" = 1 ] && exit 0
 
 # System
@@ -10,16 +11,6 @@ uci -q batch <<-EOF
 	set system.@system[0].zonename='Asia/Kuala_Lumpur'
 	set system.@system[0].timezone='<+08>-8'
 	commit system
-EOF
-
-# NSS: software/hardware flow offloading and packet steering conflict with
-# NSS ECM, so force them off (qosmio/openwrt-ipq README).
-uci -q batch <<-EOF
-	set firewall.@defaults[0].flow_offloading='0'
-	set firewall.@defaults[0].flow_offloading_hw='0'
-	commit firewall
-	set network.globals.packet_steering='0'
-	commit network
 EOF
 
 # Wi-Fi SSIDs/password/country come from /etc/board.d/99-lumenwrt.
@@ -31,17 +22,50 @@ uci -q batch <<-EOF
 	commit luci
 EOF
 
-# TTL: rewrite TTL/hop limit of LAN traffic to 64 so tethering detection sees
-# phone-like packets. NOTE: while enabled, luci-app-qmodem-ttlfw4 stops NSS ECM
-# (routing falls back to the CPU) so every packet passes the nftables rule.
-# Turn off under Modem > TTL to get NSS acceleration back.
+# Ethernet WAN port: DHCP client that never takes the default route, so the
+# 5G modem stays primary with a cable plugged in. IPv4 only.
 uci -q batch <<-EOF
-	set qmodem_ttl.main=main
-	set qmodem_ttl.main.enable='1'
-	set qmodem_ttl.main.ttl='64'
-	commit qmodem_ttl
+	set network.wan.proto='dhcp'
+	set network.wan.defaultroute='0'
+	delete network.wan6
+	commit network
 EOF
-[ -x /etc/init.d/qmodem_ttl ] && /etc/init.d/qmodem_ttl enable
+zone="$(uci -q show firewall | sed -n "s/^firewall\.\([^.]*\)\.name='wan'$/\1/p" | head -n1)"
+[ -n "$zone" ] && uci -q del_list "firewall.$zone.network=wan6" && uci -q commit firewall
+
+# The 5G modem is set up by wwand's autosetup on first start: interface
+# 'wwan0' (L3 device wwand0) in the wan zone, APN from its ICCID/IMSI table.
+
+# Front-panel LEDs. wwand drives the RGB 5G and signal lamps from its built-in
+# AW1000 board profile, so drop the board's netdev rule on green:5g (it would
+# fight wwand) and the WAN-port link rule; point Internet at the modem.
+for s in $(uci -q -X show system | sed -n "s/^system\.\([^.=]*\)=led$/\1/p"); do
+	case "$(uci -q get "system.$s.sysfs")" in
+		green:5g|green:internet|*:green:wan) uci -q delete "system.$s" ;;
+	esac
+done
+uci -q batch <<-EOF
+	set system.led_internet=led
+	set system.led_internet.name='Internet (5G)'
+	set system.led_internet.sysfs='green:internet'
+	set system.led_internet.trigger='netdev'
+	set system.led_internet.dev='wwand0'
+	set system.led_internet.mode='link tx rx'
+	set system.led_wifi=led
+	set system.led_wifi.name='Wi-Fi'
+	set system.led_wifi.sysfs='green:wifi'
+	set system.led_wifi.trigger='netdev'
+	set system.led_wifi.dev='phy0-ap0'
+	set system.led_wifi.mode='link tx rx'
+	set system.led_phone=led
+	set system.led_phone.name='Phone (SMS)'
+	set system.led_phone.sysfs='green:phone'
+	set system.led_phone.trigger='default-on'
+	commit system
+EOF
+
+# TTL rewrite (see /etc/init.d/lumenwrt-ttl): on by default, TTL 64.
+[ -x /etc/init.d/lumenwrt-ttl ] && /etc/init.d/lumenwrt-ttl enable
 
 uci -q batch <<-EOF
 	set system.@system[0].lumenwrt_defaults='1'

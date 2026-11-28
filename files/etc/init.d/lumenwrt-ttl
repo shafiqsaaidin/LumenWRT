@@ -1,0 +1,64 @@
+#!/bin/sh /etc/rc.common
+# LumenWRT: TTL / hop-limit rewrite for traffic leaving over the 5G modem.
+# Config: /etc/config/lumenwrt, section 'ttl' (enabled, value).
+#
+# Offloaded flows (fw4 flowtable -> PPE/NSS) skip nftables after their first
+# packets, so the rewrite only holds for every packet with offloading off.
+# This service therefore owns firewall.@defaults[0].flow_offloading{,_hw}:
+# TTL on -> offloading off; TTL off -> offloading on.
+
+START=18
+USE_PROCD=1
+
+NFT=/etc/nftables.d/90-lumenwrt-ttl.nft
+
+set_offload() {
+	local want="$1" changed=0 opt
+	for opt in flow_offloading flow_offloading_hw; do
+		if [ "$(uci -q get "firewall.@defaults[0].$opt")" != "$want" ]; then
+			uci -q set "firewall.@defaults[0].$opt=$want"
+			changed=1
+		fi
+	done
+	[ "$changed" = 1 ] && uci -q commit firewall
+	return 0
+}
+
+apply() {
+	local enabled value
+	config_load lumenwrt
+	config_get_bool enabled ttl enabled 0
+	config_get value ttl value 64
+	case "$value" in ''|*[!0-9]*) value=64 ;; esac
+	[ "$value" -ge 1 ] && [ "$value" -le 255 ] || value=64
+
+	if [ "$enabled" = 1 ]; then
+		cat > "$NFT.tmp" <<-EOF
+			chain lumenwrt_ttl {
+				type filter hook postrouting priority mangle; policy accept;
+				oifname "wwand*" ip ttl set $value comment "LumenWRT TTL"
+				oifname "wwand*" ip6 hoplimit set $value comment "LumenWRT hop limit"
+			}
+		EOF
+		mv "$NFT.tmp" "$NFT"
+		set_offload 0
+		logger -t lumenwrt-ttl "TTL $value on wwand*, flow offloading off"
+	else
+		rm -f "$NFT"
+		set_offload 1
+		logger -t lumenwrt-ttl "TTL rewrite off, flow offloading on"
+	fi
+	# At boot this runs before the firewall (S19), which then picks both up;
+	# later changes need a reload of the running fw4 ruleset.
+	if nft list table inet fw4 >/dev/null 2>&1; then
+		/etc/init.d/firewall reload >/dev/null 2>&1
+	fi
+}
+
+start_service() { apply; }
+reload_service() { apply; }
+stop_service() { :; }
+
+service_triggers() {
+	procd_add_reload_trigger lumenwrt
+}

@@ -1,5 +1,0 @@
-#!/bin/sh
-# Called by luci-app-qmodem-ttlfw4's init script, which doesn't ship it.
-# On fw4 the TTL rule lives in /etc/nftables.d/99-reset-ttl-from-br-lan.nft
-# (written by /etc/init.d/qmodem_ttl), so nothing else is needed here.
-exit 0

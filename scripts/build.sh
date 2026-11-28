@@ -6,11 +6,12 @@
 #   scripts/build.sh all       prepare + build
 #   scripts/build.sh menuconfig  open menuconfig on the prepared tree, then print the diff
 #
-# Env: JOBS (default nproc), V (e.g. V=s for verbose make)
+# Env: JOBS (default nproc), V (e.g. V=s for verbose make),
+#      BUILD_DIR (default "openwrt"; use another name to keep several trees)
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-WRT="$ROOT/openwrt"
+WRT="$ROOT/${BUILD_DIR:-openwrt}"
 OUT="$ROOT/out"
 JOBS="${JOBS:-$(nproc)}"
 # shellcheck source=../config/sources.env
@@ -36,12 +37,11 @@ prepare() {
 	pin_repo "$OPENWRT_REPO" "$WRT" "$OPENWRT_REF"
 
 	log "Feeds"
-	{
-		grep -v '^[[:space:]]*#' "$WRT/feeds.conf.default" | sed '/^[[:space:]]*$/d'
-		echo "src-git qmodem ${QMODEM_REPO}^${QMODEM_REF}"
-		echo "src-git modemdata ${MODEMDATA_REPO}^${MODEMDATA_REF}"
-		echo "src-git modemdata_luci ${MODEMDATA_LUCI_REPO}^${MODEMDATA_LUCI_REF}"
-	} > "$WRT/feeds.conf"
+	printf '%s\n' "$FEEDS" | sed '/^[[:space:]]*$/d' > "$WRT/feeds.conf"
+	grep -q . "$WRT/feeds.conf" || die "FEEDS is empty in config/sources.env"
+	if grep -v '\^[0-9a-f]\{40\}$' "$WRT/feeds.conf"; then
+		die "every feed must be pinned to a full commit (src-git name url^sha)"
+	fi
 	cat "$WRT/feeds.conf"
 	(cd "$WRT" && ./scripts/feeds update -a)
 	apply_patches     # resets each patched feed checkout first...
@@ -50,9 +50,11 @@ prepare() {
 
 	log "Extra packages"
 	mkdir -p "$WRT/package/lumenwrt"
-	pin_repo "$AURORA_REPO"     "$WRT/package/lumenwrt/luci-theme-aurora"     "$AURORA_REF"
-	pin_repo "$AURORA_CFG_REPO" "$WRT/package/lumenwrt/luci-app-aurora-config" "$AURORA_CFG_REF"
-	pin_repo "$NETSTAT_REPO"    "$WRT/package/lumenwrt/luci-mod-netstat"       "$NETSTAT_REF"
+	local name url ref
+	while IFS='|' read -r name url ref; do
+		[ -n "$name" ] || continue
+		pin_repo "$url" "$WRT/package/lumenwrt/$name" "$ref"
+	done <<< "$EXTRA_PKGS"
 
 	log "Overlay files"
 	rsync -a --delete "$ROOT/files/" "$WRT/files/"
@@ -86,7 +88,11 @@ override_dir() {
 }
 
 apply_overrides() {
-	override_dir luci modules/luci-mod-dashboard "$LUCI_MASTER_REPO" "$DASHBOARD_REF"
+	local feed path url ref
+	while IFS='|' read -r feed path url ref; do
+		[ -n "$feed" ] || continue
+		override_dir "$feed" "$path" "$url" "$ref"
+	done <<< "${OVERRIDES:-}"
 }
 
 # patches/<feed>/*.patch are applied (git apply, in name order) to

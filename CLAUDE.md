@@ -48,6 +48,19 @@ plus paid support. Consequences for engineering:
   `internet`, uqmi signal/serving JSON fine), but **no Wi-Fi APs came up** and
   most LEDs were off. Rejected as a base for now.
 
+## Branches
+
+- `main`: the working line on the device (qosmio 25.12-nss + QModem). Not
+  sellable as-is (QModem/quectel-CM licences).
+- `ppe-nss` (2026-11-28, **untested on hardware**): openwrt-ppe-nss @ 0514ded,
+  all feeds pinned in `FEEDS` (sources.env), modem via upstream qmi_wwan +
+  wwand (GPL-2.0, AW1000 board profile drives 5G/signal LEDs + modem power),
+  own TTL service `/etc/init.d/lumenwrt-ttl` (TTL on => fw4 flow offloading
+  off), LED rules in `99-lumenwrt`, SMS LED via `/etc/hotplug.d/wwand`.
+  Licence audit of the resolved config: nothing non-commercial; only firmware
+  blobs (nss-firmware, ath11k, ipq-wifi BDF) and adb lack PKG_LICENSE.
+  First flash must be clean (`sysupgrade -n`), wired access ready (homelab).
+
 ## Decisions (and why)
 
 | Decision | Choice | Why |

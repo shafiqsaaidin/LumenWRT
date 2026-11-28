@@ -1,28 +1,31 @@
 # LumenWRT
 
-OpenWrt firmware for the **Arcadyan AW1000** (Qualcomm IPQ8072A + Quectel RG500Q-EA),
-built on the [qosmio/openwrt-ipq](https://github.com/qosmio/openwrt-ipq) **25.12-nss** fork
-with Qualcomm NSS hardware offload and [QModem](https://github.com/FUjr/QModem).
+OpenWrt firmware for the **Arcadyan AW1000** (Qualcomm IPQ8072A + Quectel RG500Q-EA).
 
-## What's inside
+> **Branch `ppe-nss` (experimental, untested on hardware).** Built on
+> [openwrt-ppe-nss](https://github.com/JuliusBairaktaris/openwrt-ppe-nss) (OpenWrt main,
+> kernel 6.18): wired offload in the PPE through the standard fw4 flowtable, Wi-Fi and the
+> raw-IP modem path on the NSS cores (`nss-wifi-drv`). No vendor NSS stack, no QModem.
+> The stable line (25.12-nss + QModem) is on `main`.
 
-- NSS offload (FW 11.4, ECM, bridge/VLAN managers), NSS-aware modem path
-  (`kmod-qmi_wwan_q_nss` + `kmod-rmnet-nss`)
-- QModem 3.4.0_rc3.1: `luci-app-qmodem-next` (status, SMS, band lock), VoIP/SIP
-  (`qmodem-voip`, `qmodem-sipd`), TTL (`luci-app-qmodem-ttlfw4`, **on by default, TTL 64**)
-- modemdata, WireGuard, kmod-tun, kmod-nft-tproxy (for xlite), TCP BBR, adb, btop, tmux, iperf3
-- Aurora theme, LuCI Dashboard (`luci-mod-dashboard`, the modernized rewrite taken
-  from LuCI master: live charts, temperature monitoring, WAN traffic fix), "At a Glance" status widget
+## What's inside (ppe-nss)
+
+- PPE + NSS offload: fw4 hardware flow offloading (on unless TTL is on), `nss-wifi-drv`
+- Modem: upstream `qmi_wwan` + [wwand](https://github.com/ddimension/wwand) (GPL-2.0):
+  dialling, SMS, USSD, band/cell lock, SIM/eSIM, recovery incl. AW1000 modem power cycle,
+  RGB 5G/signal LEDs from its AW1000 board profile; LuCI via `luci-app-wwand`
+- TTL rewrite on 5G egress (`/etc/config/lumenwrt`, **on by default, TTL 64**)
+- WireGuard, kmod-tun, kmod-nft-tproxy (for xlite), TCP BBR, adb, btop, tmux, iperf3
+- Aurora theme, LuCI Dashboard (LuCI main: live charts, temperature), "At a Glance" widget
   (`luci-mod-netstat`; fetches your public IP from api.ipify.org every 5 min while open)
 
-> **TTL vs NSS:** TTL rewriting is on by default, and while it is on QModem stops
-> NSS ECM so the nftables rule sees every packet. Routing then runs on the CPU
-> (Wi-Fi/Ethernet drivers still use NSS). If your SIM doesn't need it, turn it off
-> under **Modem → TTL** to get full NSS routing acceleration back.
+> **TTL vs offload:** while TTL rewriting is on, `lumenwrt-ttl` turns fw4 flow offloading
+> off so every packet passes the nftables rule (routing on the CPU). Turn it off with
+> `uci set lumenwrt.ttl.enabled=0; uci commit lumenwrt` to get PPE/NSS offload back.
 
 > **Installing packages later:** the image's apk feeds point at upstream OpenWrt
-> 25.12. Regular packages install fine, but **kernel modules (`kmod-*`) won't**:
-> this kernel carries NSS patches, so upstream kmods don't match it. Add any
+> (snapshot on this branch). Regular packages install fine, but **kernel modules (`kmod-*`) won't**:
+> this kernel carries PPE/NSS patches, so upstream kmods don't match it. Add any
 > kernel module you need to `config/lumenwrt.seed` and rebuild.
 
 ## Layout
@@ -38,27 +41,25 @@ out/                   images (git-ignored)
 
 ## Build
 
-Host (Ubuntu/Mint) needs the usual OpenWrt build dependencies plus `clang` and
-`lld` (QModem VoIP builds a helper with them):
+Host (Ubuntu/Mint) needs the usual OpenWrt build dependencies:
 
 ```sh
 sudo apt install build-essential clang lld flex bison g++ gawk gettext git \
   libncurses-dev libssl-dev python3-setuptools rsync swig unzip zlib1g-dev file wget
-scripts/build.sh all        # first build: ~1-1.5 h on 12 threads
+scripts/build.sh all                          # tree in ./openwrt
+BUILD_DIR=openwrt-ppe scripts/build.sh all    # keep a second tree side by side
 ```
 
-Images land in `out/`. Use `*-squashfs-sysupgrade.bin` on a device already running OpenWrt.
+Sources and feeds are pinned in `config/sources.env`; images land in `out/`.
 
 ### GitHub Actions
 
 `.github/workflows/build.yml` runs the same script on GitHub:
 
-- **Actions → Build LumenWRT → Run workflow** builds and uploads the images as an artifact.
+- **Actions → Build LumenWRT → Run workflow** (pick the branch) builds and uploads the images.
 - Pushing a tag (`git tag v0.1.0 && git push --tags`) also publishes a GitHub Release.
 
-Downloads and ccache are cached between runs, so rebuilds are much faster than the first one.
-
-## First boot defaults
+## First boot defaults (ppe-nss)
 
 | Setting | Default |
 |---|---|
@@ -66,25 +67,23 @@ Downloads and ccache are cached between runs, so rebuilds are much faster than t
 | Timezone | Asia/Kuala_Lumpur |
 | Wi-Fi | **on**, country MY, SSIDs `LumenWRT` (2.4 GHz) and `LumenWRT_5G`, WPA2, password **`lumenwrt`** |
 | Root password | none; LuCI asks you to set one |
-| LuCI theme | Aurora (Bootstrap kept as a fallback under System → System → Language and Style) |
-| TTL | on, 64 (NSS ECM stopped while on, see above) |
-| WAN | 5G modem `wwan` (primary, metric 11); Ethernet WAN port `wan` as DHCP client without default route; no `wan6` |
-| LEDs | driven by `lumenwrt_aw1000.sh` (QModem LED service), see below |
-| modemdata | built-in modem pre-defined (Modem → Modemdata Status); reads via the AT port QModem isn't using |
+| LuCI theme | Aurora (Bootstrap kept as a fallback) |
+| 5G | wwand autosetup: interface `wwan0` (device `wwand0`) in the wan zone, APN from the SIM's ICCID/IMSI table |
+| Ethernet WAN | `wan` as DHCP client without default route (5G stays primary); no `wan6` |
+| TTL | on, 64, on `wwand*` egress; flow offloading off while on |
 
 ### Front-panel LEDs
 
-| LED | Meaning |
-|---|---|
-| Power | always on |
-| Signal | white = booting/SIM starting, yellow blink = registering; then green (good, ≥ −95 dBm), blue (medium), red (poor or no SIM) |
-| 5G | white = 5G SA, green = 5G NSA, blue = LTE, red = 3G or no SIM, yellow blink = registering |
-| Internet | on and blinking with traffic when the 5G link reaches the internet |
-| Wi-Fi | solid = both bands, fast blink = 5 GHz only, slow blink = 2.4 GHz only, off = none |
-| Phone | on; blinks ~30 s on a new SMS |
+| LED | Driven by | Meaning |
+|---|---|---|
+| Power | device tree | always on |
+| 5G | wwand (AW1000 profile) | green = LTE, blue = 5G (blinks when weak), red = searching |
+| Signal | wwand (AW1000 profile) | red / yellow / green by signal bars, red blink = searching |
+| Internet | netdev `wwand0` | on and blinking with 5G traffic |
+| Wi-Fi | netdev `phy0-ap0` | on and blinking with Wi-Fi traffic |
+| Phone | default-on + `/etc/hotplug.d/wwand` | on; blinks ~30 s on a new SMS |
 
-First-boot defaults run once. A sysupgrade that keeps settings does not re-apply them.
-| Offloading | flow offloading and packet steering forced off (NSS handles it) |
-
-Change the Wi-Fi password after first login. These defaults only apply on a fresh
-config (first flash, or sysupgrade without keeping settings).
+Change the Wi-Fi password after first login. These defaults apply on a fresh config
+(first flash, or sysupgrade without keeping settings); a keep-settings upgrade
+doesn't re-apply them. **Flash this branch without keeping settings** when coming
+from the 25.12/QModem line: their configs don't carry over.

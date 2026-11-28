@@ -1,0 +1,19 @@
+#!/bin/sh
+# LumenWRT: blink the Phone LED for ~30 s when wwand reports a new SMS.
+# (wwand runs /etc/hotplug.d/wwand/* with ACTION=<event name>.)
+
+[ "$ACTION" = sms ] || exit 0
+led=/sys/class/leds/green:phone
+[ -d "$led" ] || exit 0
+
+(
+	exec 9>/var/lock/lumenwrt-sms-led
+	flock -n 9 || exit 0          # already blinking for an earlier SMS
+	echo timer > "$led/trigger"
+	echo 500 > "$led/delay_on"
+	echo 500 > "$led/delay_off"
+	sleep 30
+	echo default-on > "$led/trigger"
+) </dev/null >/dev/null 2>&1 &
+
+exit 0

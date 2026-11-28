@@ -111,6 +111,6 @@ jobs:
         with:
           files: out/*
           body: |
-            LumenWRT for Arcadyan AW1000 (OpenWrt 25.12-nss + QModem).
+            LumenWRT for Arcadyan AW1000 (branch ${{ github.ref_name }}).
             Flash `*-squashfs-sysupgrade.bin` from an existing OpenWrt install.
             Pinned sources: see `sources.env`.

@@ -1,6 +1,7 @@
-# LumenWRT seed config for Arcadyan AW1000 (qosmio openwrt-ipq 25.12-nss)
-# Expanded with `make defconfig` by scripts/build.sh. Every "=y" line here is
-# verified to survive defconfig, so a typo or unmet dependency fails the build.
+# LumenWRT seed config for Arcadyan AW1000 (branch ppe-nss: openwrt-ppe-nss)
+# Expanded with `make defconfig` by scripts/build.sh. Every "=y" line must
+# survive defconfig and every "# ... is not set" line must stay off.
+# Commercial product: only packages licensed for redistribution (CLAUDE.md).
 
 #####################################################################
 # Target
@@ -15,35 +16,33 @@ CONFIG_TARGET_qualcommax_ipq807x_DEVICE_arcadyan_aw1000=y
 CONFIG_IMAGEOPT=y
 CONFIG_VERSIONOPT=y
 CONFIG_VERSION_DIST="LumenWRT"
-# Keep custom feeds out of the image's apk repository list (they do not
-# exist on downloads.openwrt.org).
-# CONFIG_FEED_nss_packages is not set
-# CONFIG_FEED_sqm_scripts_nss is not set
-# CONFIG_FEED_qmodem is not set
-# CONFIG_FEED_modemdata is not set
-# CONFIG_FEED_modemdata_luci is not set
+# Keep our custom feeds out of the image's apk repository list.
+# CONFIG_FEED_nss is not set
+# CONFIG_FEED_wwand is not set
 
 #####################################################################
-# NSS offloading (qca-nss-drv/ecm/bridge-mgr/vlan-mgr come with the target)
+# Offload: PPE (wired, via the fw4 flowtable; enabled on first boot by the
+# target's 99-flow-offload) + NSS cores for Wi-Fi and the raw-IP modem path.
+# No ECM / qca-nss-drv / vendor NSS stack on this branch.
 #####################################################################
-CONFIG_ATH11K_NSS_MESH_SUPPORT=y
-CONFIG_PACKAGE_kmod-qca-mcs=y
+CONFIG_PACKAGE_kmod-nss-wifi-drv=y
+CONFIG_ATH11K_NSS_WIFI=y
+CONFIG_NSS_FIRMWARE_VERSION_12_5=y
+CONFIG_PACKAGE_tc-tiny=y
+CONFIG_PACKAGE_ethtool-full=y
+CONFIG_PACKAGE_kmod-ramoops=y
 
 #####################################################################
-# Toolchain / kernel (from qosmio nss-setup/config-nss.seed)
+# Toolchain
 #####################################################################
 CONFIG_CCACHE=y
 CONFIG_DEVEL=y
 CONFIG_TOOLCHAINOPTS=y
 CONFIG_TARGET_OPTIONS=y
-CONFIG_TARGET_OPTIMIZATION="-O2 -pipe -mcpu=cortex-a53+crc+crypto"
+CONFIG_TARGET_OPTIMIZATION="-O2 -pipe -mcpu=cortex-a53"
 CONFIG_USE_GC_SECTIONS=y
 # Per-package logs in openwrt/logs/ (uploaded by CI on failure)
 CONFIG_BUILD_LOG=y
-CONFIG_KERNEL_PREEMPT_NONE=y
-# CONFIG_ATH11K_DEBUGFS_HTT_STATS is not set
-# CONFIG_ATH11K_DEBUGFS_STA is not set
-# CONFIG_ATH11K_THERMAL is not set
 
 #####################################################################
 # SSL / Wi-Fi: OpenSSL everywhere, no mixed TLS libraries
@@ -68,33 +67,28 @@ CONFIG_PACKAGE_luci-mod-dashboard=y
 CONFIG_PACKAGE_luci-mod-netstat=y
 
 #####################################################################
-# Modem: Quectel RG500Q-EA over USB, QMI with NSS rmnet offload
+# Modem: Quectel RG500Q-EA over USB, upstream qmi_wwan (raw-IP, QMAP via
+# rmnet), managed by wwand (GPL-2.0-only). AW1000 board profile is built in.
 #####################################################################
-CONFIG_PACKAGE_qmodem=y
-# No encrypted feedback upload helper
-# CONFIG_PACKAGE_qmodem_INCLUDE_SEAL is not set
-# CONFIG_PACKAGE_qmodem-seal is not set
-CONFIG_PACKAGE_luci-app-qmodem-next=y
-CONFIG_PACKAGE_luci-app-qmodem-ttlfw4=y
-CONFIG_PACKAGE_qmodem-voip=y
-CONFIG_PACKAGE_qmodem-sipd=y
-# QModem's driver choice: NSS variant only (the default "vendor" choice would
-# also pull kmod-qmi_wwan_q, which builds the same qmi_wwan_q.ko)
-CONFIG_PACKAGE_luci-app-qmodem_INCLUDE_nss-qmi-wwan=y
-CONFIG_PACKAGE_kmod-qmi_wwan_q_nss=y
-CONFIG_PACKAGE_kmod-rmnet-nss=y
-CONFIG_PACKAGE_quectel-CM-5G-M=y
-CONFIG_PACKAGE_ndisc6=y
-CONFIG_PACKAGE_luci-app-modemdata=y
+CONFIG_PACKAGE_wwand=y
+CONFIG_PACKAGE_wwand-qmi=y
+CONFIG_PACKAGE_luci-app-wwand=y
+CONFIG_PACKAGE_luci-proto-wwand=y
+CONFIG_PACKAGE_kmod-usb-net-qmi-wwan=y
+CONFIG_PACKAGE_kmod-usb-serial-option=y
+# QModem / Quectel vendor stack: not licensed for commercial use
+# CONFIG_PACKAGE_kmod-qmi_wwan_q is not set
+# CONFIG_PACKAGE_quectel-cm is not set
 
 #####################################################################
-# Networking extras
+# Networking extras (kernel modules must be built in: upstream kmods don't
+# match this kernel)
 #####################################################################
 CONFIG_PACKAGE_luci-proto-wireguard=y
+CONFIG_PACKAGE_kmod-wireguard=y
 CONFIG_PACKAGE_kmod-tun=y
 CONFIG_PACKAGE_kmod-tcp-bbr=y
-# xlite tproxy mode (nft "tproxy to"); pulls kmod-nf-tproxy. Kernel modules
-# must be built in-tree: upstream kmods don't match the NSS-patched kernel.
+# xlite tproxy mode (nft "tproxy to"); pulls kmod-nf-tproxy
 CONFIG_PACKAGE_kmod-nft-tproxy=y
 
 #####################################################################

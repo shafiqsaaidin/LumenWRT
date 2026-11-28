@@ -1,0 +1,8 @@
+
+config ttl 'ttl'
+	# Rewrite the TTL / IPv6 hop limit of traffic leaving over the 5G modem
+	# (wwand*) so tethering detection sees phone-like packets.
+	# While enabled, flow offloading (PPE/NSS) is switched off so every packet
+	# passes the nftables rule; disabling it switches offloading back on.
+	option enabled '1'
+	option value '64'
