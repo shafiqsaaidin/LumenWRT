@@ -52,7 +52,11 @@ plus paid support. Consequences for engineering:
 
 - `main`: the working line on the device (qosmio 25.12-nss + QModem). Not
   sellable as-is (QModem/quectel-CM licences).
-- `ppe-nss` (2026-11-28, **untested on hardware**): openwrt-ppe-nss @ 0514ded,
+- `ppe-nss` (2026-11-28; **our CI build #1 runs on the AW1000**, flashed clean
+  by the user: boot ~20 s to init, both Wi-Fi bands up with NSS Wi-Fi offload,
+  wwand autosetup → APN `diginet`, IPv4 internet over `wwand0` (qmi_wwan),
+  LEDs right (green 5G = LTE, green signal), TTL rule active, CPU idle;
+  SMS / TTL-off offload / speed / reboot still to test): openwrt-ppe-nss @ 0514ded,
   all feeds pinned in `FEEDS` (sources.env), modem via upstream qmi_wwan +
   wwand (GPL-2.0, AW1000 board profile drives 5G/signal LEDs + modem power),
   own TTL service `/etc/init.d/lumenwrt-ttl` (TTL on => fw4 flow offloading
