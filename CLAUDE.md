@@ -19,6 +19,26 @@ This file is public. Credentials and private notes go in `CLAUDE.local.md`
   branches; bump deliberately (see skill `lumenwrt-packages`).
 - Don't invent default passwords/keys beyond the documented ones. The repo is public.
 
+## Business model (decided 2026-11-28)
+
+LumenWRT is a **commercial product**: the firmware with a custom web UI is sold,
+plus paid support. Consequences for engineering:
+
+- **No non-commercial or unlicensed components in the image.** QModem
+  (MPL-2.0 + "no commercial use"), quectel-CM ("Quectel Proprietary and
+  Confidential"), obsy modemdata and 4IceG apps without a licence file are out.
+  Check the licence of every new package before adding it (see skill
+  `lumenwrt-packages`).
+- GPL/LGPL parts: ship complete corresponding source for every release.
+  Qualcomm NSS/Wi-Fi firmware: binary redistribution only, unmodified, on
+  Qualcomm chips; include its licence text.
+- The custom UI/API is our own work and is meant to stay proprietary: keep it
+  a separate program (no GPL code copied into it) and out of this public repo.
+- Plan: replace QModem with upstream `qmi_wwan` + netifd `qmi` (uqmi) +
+  `sms-tool` (Apache-2.0) + our own `lumen` API; candidate new base is
+  JuliusBairaktaris/openwrt-ppe-nss (PPE + NSS Wi-Fi, offloads raw-IP qmi_wwan),
+  pending a hardware test on the AW1000.
+
 ## Decisions (and why)
 
 | Decision | Choice | Why |
