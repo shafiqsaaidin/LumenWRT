@@ -68,9 +68,11 @@ plus paid support. Consequences for engineering:
   again (PR #41 describes this class of stale-rule hang), so the last test
   (wwand0 deleted from `ft`) was contaminated — redo it from a fresh boot.
   Since then flow offloading has its own switch `lumenwrt.offload.enabled`
-  (default 0, forced 0 while TTL on); TTL off no longer enables it. Link speed
-  measured 2.9 Mbit/s both router-originated and forwarded (line-limited, LTE
-  RSRP −97). `uci commit` alone doesn't apply lumenwrt-ttl: use `reload_config`.
+  (default 0, forced 0 while TTL on); TTL off no longer enables it. Speed (TTL on,
+  offload off, LTE): Ookla CLI on the homelab (`speedtest`, already installed)
+  90.4/34.5 Mbit/s (CelcomDigi PJ) and 70.8/30.4 (TIME KL), router CPU ≥ 79 %
+  idle. Single-stream Cloudflare `__down` only gave ~2.9 Mbit/s (that path,
+  not the router) — use speedtest for throughput. `uci commit` alone doesn't apply lumenwrt-ttl: use `reload_config`.
   Base: openwrt-ppe-nss @ 0514ded,
   all feeds pinned in `FEEDS` (sources.env), modem via upstream qmi_wwan +
   wwand (GPL-2.0, AW1000 board profile drives 5G/signal LEDs + modem power),
