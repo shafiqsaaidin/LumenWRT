@@ -72,7 +72,13 @@ plus paid support. Consequences for engineering:
   offload off, LTE): Ookla CLI on the homelab (`speedtest`, already installed)
   90.4/34.5 Mbit/s (CelcomDigi PJ) and 70.8/30.4 (TIME KL), router CPU ≥ 79 %
   idle. Single-stream Cloudflare `__down` only gave ~2.9 Mbit/s (that path,
-  not the router) — use speedtest for throughput. `uci commit` alone doesn't apply lumenwrt-ttl: use `reload_config`.
+  not the router) — use speedtest for throughput. Without offload all 5G work
+  sat on CPU0 (xhci IRQ effective=0; OpenWrt packet_steering only touches
+  physical netdevs and pinned wwan0 to CPU0). RPS on the virtual `wwand0`
+  (mask `e`) moved routing/NAT to CPU1-3: CPU0 load per Mbit/s about -40 %
+  (80 Mbit/s → CPU0 ~20 %; 117 Mbit/s → ~15-18 %). Shipped as
+  `files/etc/hotplug.d/iface/30-lumenwrt-modem-rps` (also installed by hand on
+  the router 2026-11-28). USB RX + QMAP de-aggregation stay on the IRQ CPU. `uci commit` alone doesn't apply lumenwrt-ttl: use `reload_config`.
   Base: openwrt-ppe-nss @ 0514ded,
   all feeds pinned in `FEEDS` (sources.env), modem via upstream qmi_wwan +
   wwand (GPL-2.0, AW1000 board profile drives 5G/signal LEDs + modem power),

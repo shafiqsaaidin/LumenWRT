@@ -1,0 +1,35 @@
+#!/bin/sh
+# LumenWRT: spread forwarding of 5G traffic over CPU1-3 (RPS) when the modem
+# interface comes up.
+#
+# The modem's USB interrupt, the USB receive and wwand's QMAP de-aggregation
+# all run on one CPU (CPU0 on the AW1000); OpenWrt's packet_steering only
+# touches physical netdevs, and the physical wwan0 carries QMAP frames the
+# kernel cannot hash per flow. The virtual wwand* device carries plain IP, so
+# RPS there moves routing/NAT/firewall work to the other cores.
+# Measured 2026-11-28 (speedtest, LTE): CPU0 load per Mbit/s about -40 %.
+#
+# Mask: every CPU except the one handling the modem's USB interrupt.
+
+[ "$ACTION" = ifup ] || exit 0
+case "$DEVICE" in wwand*) ;; *) exit 0 ;; esac
+[ -d "/sys/class/net/$DEVICE/queues" ] || exit 0
+
+ncpu=$(grep -c '^processor' /proc/cpuinfo)
+[ "$ncpu" -gt 1 ] || exit 0
+all=$(( (1 << ncpu) - 1 ))
+
+# CPU of the busiest xhci interrupt (fallback CPU0)
+irqcpu=0
+irq=$(awk '/xhci/ { n=0; for (i=2; i<=NF && $i ~ /^[0-9]+$/; i++) n+=$i; if (n>max) { max=n; id=$1 } } END { sub(":","",id); print id }' /proc/interrupts)
+if [ -n "$irq" ] && [ -r "/proc/irq/$irq/effective_affinity_list" ]; then
+	c=$(cut -d, -f1 "/proc/irq/$irq/effective_affinity_list" | cut -d- -f1)
+	case "$c" in ''|*[!0-9]*) ;; *) irqcpu=$c ;; esac
+fi
+mask=$(printf '%x' $(( all & ~(1 << irqcpu) )))
+
+for q in /sys/class/net/"$DEVICE"/queues/rx-*/rps_cpus; do
+	echo "$mask" > "$q"
+done
+logger -t lumenwrt "RPS on $DEVICE: cpus mask $mask (modem IRQ on cpu$irqcpu)"
+exit 0

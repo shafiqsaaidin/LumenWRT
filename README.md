@@ -73,6 +73,7 @@ Sources and feeds are pinned in `config/sources.env`; images land in `out/`.
 | Ethernet WAN | `wan` as DHCP client without default route (5G stays primary); no `wan6` |
 | TTL | on, 64, on `wwand*` egress |
 | Flow offloading | off (`lumenwrt.offload.enabled`; forced off while TTL is on) |
+| 5G CPU spreading | RPS on `wwand*` to every CPU except the modem's USB-interrupt CPU (`/etc/hotplug.d/iface/30-lumenwrt-modem-rps`) |
 
 ### Front-panel LEDs
 
