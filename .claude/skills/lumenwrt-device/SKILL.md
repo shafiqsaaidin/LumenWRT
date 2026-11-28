@@ -14,6 +14,10 @@ Credentials are in `CLAUDE.local.md` (git-ignored). If a login fails, ask; don't
   Get the user's explicit OK for that specific step, warn them first, and give
   them the steps to finish on their own (rejoin Wi-Fi, check things) since you
   may not come back until they reconnect.
+- **Only flash LumenWRT images built by this repo's CI and verified with the
+  `lumenwrt-build` skill** — never a third-party prebuilt image. Ask "flash
+  <image>?" and wait for an explicit yes every time; offers of help or tools
+  are not a yes.
 - Read-only by default. Back up before any change; say what you changed after.
 - Never paste credentials, IMEI/IMSI/ICCID, phone numbers or SMS content into
   commits, issues or anything public.

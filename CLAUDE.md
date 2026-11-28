@@ -14,6 +14,12 @@ This file is public. Credentials and private notes go in `CLAUDE.local.md`
   offline. A clean flash also changes the SSID/password, so the PC won't rejoin
   by itself. Never reboot/flash/reconfigure it without the user's explicit OK
   for that step, and tell them beforehand that the connection will drop.
+- **Never flash an image we didn't build and verify ourselves** (no third-party
+  prebuilt images, even if their device list includes the AW1000). Every flash
+  needs the user's explicit "flash it" for that image, in that message — an
+  offer of help (e.g. a machine to run it from) is not a go-ahead.
+  (2026-11-28: a prebuilt ppe-nss image left the AW1000 without Wi-Fi and the
+  user had to recover it by hand.)
 - Read-only on the router unless asked. Back up (`sysupgrade -b`) before any change.
 - Sources are pinned by commit in `config/sources.env`. Never build from moving
   branches; bump deliberately (see skill `lumenwrt-packages`).
@@ -35,9 +41,12 @@ plus paid support. Consequences for engineering:
 - The custom UI/API is our own work and is meant to stay proprietary: keep it
   a separate program (no GPL code copied into it) and out of this public repo.
 - Plan: replace QModem with upstream `qmi_wwan` + netifd `qmi` (uqmi) +
-  `sms-tool` (Apache-2.0) + our own `lumen` API; candidate new base is
-  JuliusBairaktaris/openwrt-ppe-nss (PPE + NSS Wi-Fi, offloads raw-IP qmi_wwan),
-  pending a hardware test on the AW1000.
+  `sms-tool` (Apache-2.0) + our own `lumen` API, on the current qosmio
+  25.12-nss base.
+- ppe-nss (JuliusBairaktaris, prebuilt 2026-11-22, kernel 6.18) on the AW1000:
+  booted after ~11 min, 5G worked with upstream qmi_wwan + netifd qmi (APN
+  `internet`, uqmi signal/serving JSON fine), but **no Wi-Fi APs came up** and
+  most LEDs were off. Rejected as a base for now.
 
 ## Decisions (and why)
 
