@@ -56,7 +56,15 @@ plus paid support. Consequences for engineering:
   by the user: boot ~20 s to init, both Wi-Fi bands up with NSS Wi-Fi offload,
   wwand autosetup → APN `diginet`, IPv4 internet over `wwand0` (qmi_wwan),
   LEDs right (green 5G = LTE, green signal), TTL rule active, CPU idle;
-  SMS / TTL-off offload / speed / reboot still to test): openwrt-ppe-nss @ 0514ded,
+  SMS / speed / reboot still to test). **TTL off (= flow offloading on) breaks
+  LAN traffic over 5G**: flows enter the sw flowtable, PPE rejects them
+  (ingress_not_switch_port), downloads stall at 0 B. wwand uses QMAP
+  (`mux_id auto`: `wwan0` raw_ip+pass_through, virtual `wwand0` child);
+  ppe-nss PR #41 was tested with vendor qmi_wwan_q (plain `wwan0_1`). Next
+  experiment: `network.wwan0.mux_id='0'`. Until fixed keep TTL on. Link speed
+  measured 2.9 Mbit/s both router-originated and forwarded (line-limited, LTE
+  RSRP −97). `uci commit` alone doesn't apply lumenwrt-ttl: use `reload_config`.
+  Base: openwrt-ppe-nss @ 0514ded,
   all feeds pinned in `FEEDS` (sources.env), modem via upstream qmi_wwan +
   wwand (GPL-2.0, AW1000 board profile drives 5G/signal LEDs + modem power),
   own TTL service `/etc/init.d/lumenwrt-ttl` (TTL on => fw4 flow offloading

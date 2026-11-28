@@ -21,7 +21,7 @@ OpenWrt firmware for the **Arcadyan AW1000** (Qualcomm IPQ8072A + Quectel RG500Q
 
 > **TTL vs offload:** while TTL rewriting is on, `lumenwrt-ttl` turns fw4 flow offloading
 > off so every packet passes the nftables rule (routing on the CPU). Turn it off with
-> `uci set lumenwrt.ttl.enabled=0; uci commit lumenwrt` to get PPE/NSS offload back.
+> `uci set lumenwrt.ttl.enabled=0; uci commit lumenwrt; reload_config` to get PPE/NSS offload back.
 
 > **Installing packages later:** the image's apk feeds point at upstream OpenWrt
 > (snapshot on this branch). Regular packages install fine, but **kernel modules (`kmod-*`) won't**:

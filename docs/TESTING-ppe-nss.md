@@ -44,7 +44,7 @@ for l in /sys/class/leds/*; do echo "$(basename $l)=$(cat $l/brightness)"; done
 - [ ] LEDs: power on; 5G/signal colours from wwand; Internet blinks with traffic; Wi-Fi on
 - [ ] LuCI: Modem pages (luci-app-wwand) show signal, SMS inbox works, send an SMS
 - [ ] Phone LED blinks ~30 s on an incoming SMS
-- [ ] TTL off → offload on: `uci set lumenwrt.ttl.enabled=0; uci commit lumenwrt`, then
+- [ ] TTL off → offload on: `uci set lumenwrt.ttl.enabled=0; uci commit lumenwrt; reload_config`, then
       during a download `grep -c HW_OFFLOAD /proc/net/nf_conntrack` > 0
 - [ ] Speed test with TTL on and off, `top` on the router (CPU load)
 - [ ] Reboot once more: everything comes back on its own

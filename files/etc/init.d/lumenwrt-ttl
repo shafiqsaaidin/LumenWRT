@@ -6,6 +6,13 @@
 # packets, so the rewrite only holds for every packet with offloading off.
 # This service therefore owns firewall.@defaults[0].flow_offloading{,_hw}:
 # TTL on -> offloading off; TTL off -> offloading on.
+# Apply changes with 'reload_config' (LuCI's Apply does it): 'uci commit'
+# alone does not run the reload trigger.
+#
+# KNOWN ISSUE (2026-11-28, AW1000): with offloading on, LAN traffic over the
+# modem stalls while wwand runs QMAP (mux_id auto: wwan0 raw_ip+pass_through,
+# wwand0 child). Suspected: nss-wifi-drv pairs every raw-IP device, incl. the
+# QMAP carrier. Candidate fix: wwand interface option mux_id '0' (plain raw-IP).
 
 START=18
 USE_PROCD=1
@@ -45,6 +52,8 @@ apply() {
 		logger -t lumenwrt-ttl "TTL $value on wwand*, flow offloading off"
 	else
 		rm -f "$NFT"
+		# fw4 reload flushes rules but keeps chains it no longer defines
+		nft delete chain inet fw4 lumenwrt_ttl 2>/dev/null
 		set_offload 1
 		logger -t lumenwrt-ttl "TTL rewrite off, flow offloading on"
 	fi
