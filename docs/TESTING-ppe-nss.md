@@ -34,7 +34,7 @@ ubus call wwand status                               # modem, registration, sign
 ifstatus wwan0 | jsonfilter -e '@.up' -e '@["ipv4-address"][0].address'
 ping -c3 1.1.1.1
 uci show lumenwrt; nft list chain inet fw4 lumenwrt_ttl   # TTL 64 on wwand*
-uci get firewall.@defaults[0].flow_offloading_hw     # 0 while TTL is on
+uci get firewall.@defaults[0].flow_offloading_hw     # 0 (off by default)
 for l in /sys/class/leds/*; do echo "$(basename $l)=$(cat $l/brightness)"; done
 ```
 
@@ -44,8 +44,9 @@ for l in /sys/class/leds/*; do echo "$(basename $l)=$(cat $l/brightness)"; done
 - [ ] LEDs: power on; 5G/signal colours from wwand; Internet blinks with traffic; Wi-Fi on
 - [ ] LuCI: Modem pages (luci-app-wwand) show signal, SMS inbox works, send an SMS
 - [ ] Phone LED blinks ~30 s on an incoming SMS
-- [ ] TTL off → offload on: `uci set lumenwrt.ttl.enabled=0; uci commit lumenwrt; reload_config`, then
-      during a download `grep -c HW_OFFLOAD /proc/net/nf_conntrack` > 0
+- [ ] Offload (known broken with the modem, 2026-11-28): `uci set lumenwrt.ttl.enabled=0;
+      uci set lumenwrt.offload.enabled=1; uci commit lumenwrt; reload_config`, download from a
+      LAN client; if it stalls, set both back and `reload_config`
 - [ ] Speed test with TTL on and off, `top` on the router (CPU load)
 - [ ] Reboot once more: everything comes back on its own
 

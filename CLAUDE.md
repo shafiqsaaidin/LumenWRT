@@ -60,8 +60,15 @@ plus paid support. Consequences for engineering:
   LAN traffic over 5G**: flows enter the sw flowtable, PPE rejects them
   (ingress_not_switch_port), downloads stall at 0 B. wwand uses QMAP
   (`mux_id auto`: `wwan0` raw_ip+pass_through, virtual `wwand0` child);
-  ppe-nss PR #41 was tested with vendor qmi_wwan_q (plain `wwan0_1`). Next
-  experiment: `network.wwan0.mux_id='0'`. Until fixed keep TTL on. Link speed
+  ppe-nss PR #41 was tested with vendor qmi_wwan_q (plain `wwan0_1`).
+  Tried 2026-11-28 (all reverted): `mux_id '0'` (wwand0 = real USB netdev,
+  type 65534, no QMAP) still stalls; **software-only** flowtable
+  (flow_offloading_hw=0) still stalls; after that, stale NSS rules made every
+  new TLS handshake from LAN hang (curl exit 35) until offloading was off
+  again (PR #41 describes this class of stale-rule hang), so the last test
+  (wwand0 deleted from `ft`) was contaminated — redo it from a fresh boot.
+  Since then flow offloading has its own switch `lumenwrt.offload.enabled`
+  (default 0, forced 0 while TTL on); TTL off no longer enables it. Link speed
   measured 2.9 Mbit/s both router-originated and forwarded (line-limited, LTE
   RSRP −97). `uci commit` alone doesn't apply lumenwrt-ttl: use `reload_config`.
   Base: openwrt-ppe-nss @ 0514ded,

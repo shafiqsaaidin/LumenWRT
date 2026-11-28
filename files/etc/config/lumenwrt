@@ -2,7 +2,11 @@
 config ttl 'ttl'
 	# Rewrite the TTL / IPv6 hop limit of traffic leaving over the 5G modem
 	# (wwand*) so tethering detection sees phone-like packets.
-	# While enabled, flow offloading (PPE/NSS) is switched off so every packet
-	# passes the nftables rule; disabling it switches offloading back on.
 	option enabled '1'
 	option value '64'
+
+config offload 'offload'
+	# fw4 flow offloading (PPE/NSS). Forced off while TTL is on.
+	# Keep '0' on the ppe-nss branch for now: with it on, traffic over the
+	# modem stalls (see /etc/init.d/lumenwrt-ttl).
+	option enabled '0'

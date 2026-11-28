@@ -10,7 +10,7 @@ OpenWrt firmware for the **Arcadyan AW1000** (Qualcomm IPQ8072A + Quectel RG500Q
 
 ## What's inside (ppe-nss)
 
-- PPE + NSS offload: fw4 hardware flow offloading (on unless TTL is on), `nss-wifi-drv`
+- PPE + NSS: `nss-wifi-drv` (Wi-Fi data path on NSS); fw4 flow offloading off by default (modem stall, open issue)
 - Modem: upstream `qmi_wwan` + [wwand](https://github.com/ddimension/wwand) (GPL-2.0):
   dialling, SMS, USSD, band/cell lock, SIM/eSIM, recovery incl. AW1000 modem power cycle,
   RGB 5G/signal LEDs from its AW1000 board profile; LuCI via `luci-app-wwand`
@@ -19,9 +19,10 @@ OpenWrt firmware for the **Arcadyan AW1000** (Qualcomm IPQ8072A + Quectel RG500Q
 - Aurora theme, LuCI Dashboard (LuCI main: live charts, temperature), "At a Glance" widget
   (`luci-mod-netstat`; fetches your public IP from api.ipify.org every 5 min while open)
 
-> **TTL vs offload:** while TTL rewriting is on, `lumenwrt-ttl` turns fw4 flow offloading
-> off so every packet passes the nftables rule (routing on the CPU). Turn it off with
-> `uci set lumenwrt.ttl.enabled=0; uci commit lumenwrt; reload_config` to get PPE/NSS offload back.
+> **TTL and offload:** TTL rewriting is on by default. Flow offloading (PPE/NSS) is
+> **off** by default on this branch: with it on, LAN/Wi-Fi traffic over the modem stalls
+> (open issue, see `/etc/init.d/lumenwrt-ttl`). Settings live in `/etc/config/lumenwrt`;
+> apply with `reload_config`.
 
 > **Installing packages later:** the image's apk feeds point at upstream OpenWrt
 > (snapshot on this branch). Regular packages install fine, but **kernel modules (`kmod-*`) won't**:
@@ -70,7 +71,8 @@ Sources and feeds are pinned in `config/sources.env`; images land in `out/`.
 | LuCI theme | Aurora (Bootstrap kept as a fallback) |
 | 5G | wwand autosetup: interface `wwan0` (device `wwand0`) in the wan zone, APN from the SIM's ICCID/IMSI table |
 | Ethernet WAN | `wan` as DHCP client without default route (5G stays primary); no `wan6` |
-| TTL | on, 64, on `wwand*` egress; flow offloading off while on |
+| TTL | on, 64, on `wwand*` egress |
+| Flow offloading | off (`lumenwrt.offload.enabled`; forced off while TTL is on) |
 
 ### Front-panel LEDs
 

@@ -1,18 +1,18 @@
 #!/bin/sh /etc/rc.common
-# LumenWRT: TTL / hop-limit rewrite for traffic leaving over the 5G modem.
-# Config: /etc/config/lumenwrt, section 'ttl' (enabled, value).
+# LumenWRT: TTL / hop-limit rewrite for traffic leaving over the 5G modem, and
+# the fw4 flow-offloading switch it depends on.
+# Config: /etc/config/lumenwrt, sections 'ttl' (enabled, value) and 'offload'
+# (enabled). Apply changes with 'reload_config' (LuCI's Apply does it):
+# 'uci commit' alone does not run the reload trigger.
 #
-# Offloaded flows (fw4 flowtable -> PPE/NSS) skip nftables after their first
-# packets, so the rewrite only holds for every packet with offloading off.
-# This service therefore owns firewall.@defaults[0].flow_offloading{,_hw}:
-# TTL on -> offloading off; TTL off -> offloading on.
-# Apply changes with 'reload_config' (LuCI's Apply does it): 'uci commit'
-# alone does not run the reload trigger.
+# Flow offloading (fw4 flowtable -> PPE/NSS) is OFF by default and forced off
+# while TTL is on (offloaded flows skip nftables after their first packets).
 #
-# KNOWN ISSUE (2026-11-28, AW1000): with offloading on, LAN traffic over the
-# modem stalls while wwand runs QMAP (mux_id auto: wwan0 raw_ip+pass_through,
-# wwand0 child). Suspected: nss-wifi-drv pairs every raw-IP device, incl. the
-# QMAP carrier. Candidate fix: wwand interface option mux_id '0' (plain raw-IP).
+# KNOWN ISSUE (2026-11-28, AW1000, ppe-nss 0514ded + wwand): with flow
+# offloading on, LAN/Wi-Fi traffic over the modem stalls (hardware and
+# software-only flowtable alike, with wwand QMAP and with mux_id 0), and stale
+# NSS rules then hang new TLS handshakes until offloading is off again. Do not
+# enable offload.enabled on this branch until that is fixed.
 
 START=18
 USE_PROCD=1
@@ -32,14 +32,15 @@ set_offload() {
 }
 
 apply() {
-	local enabled value
+	local ttl value offload
 	config_load lumenwrt
-	config_get_bool enabled ttl enabled 0
+	config_get_bool ttl ttl enabled 0
 	config_get value ttl value 64
+	config_get_bool offload offload enabled 0
 	case "$value" in ''|*[!0-9]*) value=64 ;; esac
 	[ "$value" -ge 1 ] && [ "$value" -le 255 ] || value=64
 
-	if [ "$enabled" = 1 ]; then
+	if [ "$ttl" = 1 ]; then
 		cat > "$NFT.tmp" <<-EOF
 			chain lumenwrt_ttl {
 				type filter hook postrouting priority mangle; policy accept;
@@ -48,15 +49,17 @@ apply() {
 			}
 		EOF
 		mv "$NFT.tmp" "$NFT"
-		set_offload 0
-		logger -t lumenwrt-ttl "TTL $value on wwand*, flow offloading off"
+		offload=0
+		logger -t lumenwrt-ttl "TTL $value on wwand*"
 	else
 		rm -f "$NFT"
 		# fw4 reload flushes rules but keeps chains it no longer defines
 		nft delete chain inet fw4 lumenwrt_ttl 2>/dev/null
-		set_offload 1
-		logger -t lumenwrt-ttl "TTL rewrite off, flow offloading on"
+		logger -t lumenwrt-ttl "TTL rewrite off"
 	fi
+	set_offload "$offload"
+	logger -t lumenwrt-ttl "flow offloading $([ "$offload" = 1 ] && echo on || echo off)"
+
 	# At boot this runs before the firewall (S19), which then picks both up;
 	# later changes need a reload of the running fw4 ruleset.
 	if nft list table inet fw4 >/dev/null 2>&1; then
